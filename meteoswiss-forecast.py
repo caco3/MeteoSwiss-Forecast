@@ -113,7 +113,7 @@ class MeteoSwissForecast:
         wind = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind")
         windGustPeak = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind_gust_peak")
 
-        # todo also extract symbols
+        # TODO also extract symbols
 
         self.data["noOfDays"] = self.days
         self.data["dayNames"] = dayNames
@@ -246,6 +246,13 @@ class MeteoSwissForecast:
         ax1.margins(x=0)
         ax2.margins(x=0)
         plt.subplots_adjust(left=0.0, right=2, top=0.9, bottom=0.1)
+        
+        y0, ymax = plt.ylim()
+        # TODO use absolute position in pixel
+        # TODO show date/time of forcast model run
+        plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
+        
+        
 
         logging.debug("Saving graphic to %s" % filename)
         plt.savefig(filename, bbox_inches='tight')
