@@ -268,7 +268,7 @@ class MeteoSwissForecast:
         # TODO show date/time of forcast model run
         #plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
         ax1.annotate("Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")), xy=(width-10, height - 20), xycoords='axes pixels', ha="right")
-        
+
         logging.debug("Saving graph to %s" % filename)
         plt.savefig(filename)
 
