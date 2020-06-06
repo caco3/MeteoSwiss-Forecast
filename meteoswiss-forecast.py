@@ -165,14 +165,14 @@ class MeteoSwissForecast:
     """
     
     """
-    def generateGraphic(self, data, filename, useExtendedStyle, timeDivisions):
-        logging.debug("Creating graphic...")
+    def generateGraph(self, data, filename, useExtendedStyle, timeDivisions, graphWidth, graphHeight):
+        logging.debug("Creating graph...")
         fig, ax1 = plt.subplots()
 
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
             plt.axvspan(data["timestamps"][0 + day * 24], data["timestamps"][23 + day * 24] + 3600, facecolor='gray', alpha=0.2)
-        
+
         # Rain
         rainBars = [0] * len(self.rainColorSteps)
 
@@ -215,6 +215,7 @@ class MeteoSwissForecast:
         ax2.set_ylabel('Temperature', color=color)
         ax2.tick_params(axis='y', labelcolor=color)
 
+        plt.grid(True)
 
         # Make sure minimum temperature is 0 or lower
         # Make sure temperature max is multiple of 5
@@ -233,7 +234,7 @@ class MeteoSwissForecast:
         plt.margins(x=0)
         ax1.margins(x=0)
         ax2.margins(x=0)
-        plt.subplots_adjust(left=0.0, right=2, top=0.9, bottom=0.1)
+        plt.subplots_adjust(left=0.08, right=0.92, top=0.92, bottom=0.18)
 
         # Time axis
         if not timeDivisions:
@@ -247,7 +248,6 @@ class MeteoSwissForecast:
         plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
         
         # Time ticks        
-        #ax1.tick_params(axis='x', rotation=45)
         ax1.tick_params(axis='x')
         
         # Print day names
@@ -258,11 +258,15 @@ class MeteoSwissForecast:
         for day in range(0, data["noOfDays"]):
             ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
 
-        plt.grid(True)
 
+        if not graphWidth:
+            graphWidth = 1280
+        if not graphHeight:
+            graphHeight = 300
+        fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
 
-        logging.debug("Saving graphic to %s" % filename)
-        plt.savefig(filename, bbox_inches='tight')
+        logging.debug("Saving graph to %s" % filename)
+        plt.savefig(filename)
 
 
 
@@ -270,11 +274,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to fetch the MeteoSwiss Weather Forecast data and generate a graph')
     parser.add_argument('-v', action='store_true', help='Verbose output')
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the location to be represented')
-    parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graphic to be written')
+    parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written')
     parser.add_argument('--extended-style', action='store_true', help='Use extended style instead of MeteoSwiss App mode')
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
-    parser.add_argument('--height', action='store', help='Height of the plot in pixel')
-    parser.add_argument('--width', action='store', help='Width of the plot in pixel')
+    parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
+    parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel')
     parser.add_argument('--time-divisions', action='store', type=int, help='DIstance in hours between time labels')
 
     args = parser.parse_args()
@@ -288,5 +292,5 @@ if __name__ == '__main__':
     meteoSwissForecast = MeteoSwissForecast(args.zip_code)
     dataUrl = meteoSwissForecast.getDataUrl()
     data = meteoSwissForecast.collectData(dataUrl, args.days_to_show)
-    meteoSwissForecast.generateGraphic(data, args.file.name, args.extended_style, args.time_divisions)
+    meteoSwissForecast.generateGraph(data, args.file.name, args.extended_style, args.time_divisions, args.width, args.height)
 
