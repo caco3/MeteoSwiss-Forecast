@@ -62,7 +62,7 @@ class MeteoSwissForecast:
     """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
-    def collectData(self, dataUrl):
+    def collectData(self, dataUrl, daysToUse):
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0'})
         forcastDataPlain = (urlopen(req).read()).decode('utf-8')
@@ -71,6 +71,12 @@ class MeteoSwissForecast:
 
         self.days = len(forecastData)
         logging.debug("The forecast contains data for %d days" % self.days)
+        if daysToUse != None:
+            if self.days < daysToUse:
+                daysToUse = self.days
+            if self.days != daysToUse:
+                logging.debug("But going only to use the first %d days" % daysToUse)
+            self.days = daysToUse
 
         dayNames = []
         formatedTime = []
@@ -166,10 +172,10 @@ class MeteoSwissForecast:
     """
     
     """
-    def generateGraphic(self, filename, useExtendedMode, data):
+    def generateGraphic(self, data, filename, useExtendedStyle):
         logging.debug("Creating graphic...")
         fig, ax1 = plt.subplots()
-        
+
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
             plt.axvspan(data["timestamps"][0 + day * 24], data["timestamps"][23 + day * 24] + 3600, facecolor='gray', alpha=0.2)
@@ -251,7 +257,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', action='store_true', help='Verbose output')
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the location to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graphic to be written')
-    parser.add_argument('-e', action='store_true', help='Use extended style instead of MeteoSwiss App mode')
+    parser.add_argument('--extended-style', action='store_true', help='Use extended style instead of MeteoSwiss App mode')
+    parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', help='Height of the plot in pixel')
     parser.add_argument('--width', action='store', help='Width of the plot in pixel')
 
@@ -265,6 +272,6 @@ if __name__ == '__main__':
 
     meteoSwissForecast = MeteoSwissForecast(args.zip_code)
     dataUrl = meteoSwissForecast.getDataUrl()
-    data = meteoSwissForecast.collectData(dataUrl)
-    meteoSwissForecast.generateGraphic(args.file.name, args.e, data)
+    data = meteoSwissForecast.collectData(dataUrl, args.days_to_show)
+    meteoSwissForecast.generateGraphic(data, args.file.name, args.extended_style)
 
