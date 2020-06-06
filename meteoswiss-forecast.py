@@ -196,7 +196,7 @@ class MeteoSwissForecast:
             bottom = np.add(bottom, rainBars[i-1]).tolist()
             ax1.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
 
-        ax1.set_ylabel('Rainfall', color=self.rainColors[1])
+        #ax1.set_ylabel('Rainfall', color=self.rainColors[1])
         ax1.tick_params(axis='y', labelcolor=self.rainColors[1])
 
         plt.ylim(0, max(data["rainfall"]) + 1)
@@ -212,7 +212,7 @@ class MeteoSwissForecast:
         color = "red"
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
         ax2.plot(data["timestamps"], data["temperature"], label = "temperature", color=color, linewidth=4)
-        ax2.set_ylabel('Temperature', color=color)
+        #ax2.set_ylabel('Temperature', color=color)
         ax2.tick_params(axis='y', labelcolor=color)
 
         plt.grid(True)
@@ -230,40 +230,43 @@ class MeteoSwissForecast:
 
         plt.ylim(min(0, min(data["temperatureVarianceMin"])), math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5)
 
-        ## General plot settings
-        plt.margins(x=0)
-        ax1.margins(x=0)
-        ax2.margins(x=0)
-        plt.subplots_adjust(left=0.08, right=0.92, top=0.92, bottom=0.18)
 
         # Time axis
         if not timeDivisions:
             timeDivisions = 3 # 3 hours between ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
-        
+
         # Show generation date
         y0, ymax = plt.ylim()
         # TODO use absolute position in pixel
         # TODO show date/time of forcast model run
         plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
-        
+
         # Time ticks        
         ax1.tick_params(axis='x')
-        
-        # Print day names
-        bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi        
-        xPixelsPerDay = width / data["noOfDays"]
-        
-        for day in range(0, data["noOfDays"]):
-            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
 
+
+        # Plot dimension and borders
+        plt.margins(x=0)
+        ax1.margins(x=0)
+        ax2.margins(x=0)
+        borders = 0.03
+        plt.subplots_adjust(left=borders, right=1-borders-0.01, top=1-borders, bottom=borders+0.13)
 
         if not graphWidth:
             graphWidth = 1280
         if not graphHeight:
             graphHeight = 300
         fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
+
+
+        # Print day names
+        bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi
+        xPixelsPerDay = width / data["noOfDays"]
+
+        for day in range(0, data["noOfDays"]):
+            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
 
         logging.debug("Saving graph to %s" % filename)
         plt.savefig(filename)
