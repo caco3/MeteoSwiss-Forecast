@@ -96,14 +96,7 @@ class MeteoSwissForecast:
 
         dayIndex = 0
         for timestamp in timestamps:
-            if timestamp % (24*3600) == 0: # midnight
-                #formated = datetime.datetime.utcfromtimestamp(timestamp).strftime('%d. %b')
-                formated = dayNames[dayIndex]
-                dayIndex += 1
-            else:
-                formated = datetime.datetime.utcfromtimestamp(timestamp).strftime('%H:%M')
-            #print(timestamp, formated)
-            formatedTime.append(formated)
+            formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%H:%M'))
 
         rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall")
         sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine")
@@ -172,14 +165,14 @@ class MeteoSwissForecast:
     """
     
     """
-    def generateGraphic(self, data, filename, useExtendedStyle):
+    def generateGraphic(self, data, filename, useExtendedStyle, timeDivisions):
         logging.debug("Creating graphic...")
         fig, ax1 = plt.subplots()
 
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
             plt.axvspan(data["timestamps"][0 + day * 24], data["timestamps"][23 + day * 24] + 3600, facecolor='gray', alpha=0.2)
-
+        
         # Rain
         rainBars = [0] * len(self.rainColorSteps)
 
@@ -222,7 +215,6 @@ class MeteoSwissForecast:
         ax2.set_ylabel('Temperature', color=color)
         ax2.tick_params(axis='y', labelcolor=color)
 
-        plt.grid(True)
 
         # Make sure minimum temperature is 0 or lower
         # Make sure temperature max is multiple of 5
@@ -237,22 +229,37 @@ class MeteoSwissForecast:
 
         plt.ylim(min(0, min(data["temperatureVarianceMin"])), math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5)
 
-        # General plot settings
-        ax1.tick_params(axis='x', rotation=45)
-
-        plt.xticks(data["timestamps"][::3], data["formatedTime"][::3])
-
+        ## General plot settings
         plt.margins(x=0)
         ax1.margins(x=0)
         ax2.margins(x=0)
         plt.subplots_adjust(left=0.0, right=2, top=0.9, bottom=0.1)
+
+        # Time axis
+        if not timeDivisions:
+            timeDivisions = 3 # 3 hours between ticks
+        plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
         
+        # Show generation date
         y0, ymax = plt.ylim()
         # TODO use absolute position in pixel
         # TODO show date/time of forcast model run
         plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
         
+        # Time ticks        
+        #ax1.tick_params(axis='x', rotation=45)
+        ax1.tick_params(axis='x')
         
+        # Print day names
+        bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi        
+        xPixelsPerDay = width / data["noOfDays"]
+        
+        for day in range(0, data["noOfDays"]):
+            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
+
+        plt.grid(True)
+
 
         logging.debug("Saving graphic to %s" % filename)
         plt.savefig(filename, bbox_inches='tight')
@@ -268,6 +275,7 @@ if __name__ == '__main__':
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', help='Height of the plot in pixel')
     parser.add_argument('--width', action='store', help='Width of the plot in pixel')
+    parser.add_argument('--time-divisions', action='store', type=int, help='DIstance in hours between time labels')
 
     args = parser.parse_args()
 
@@ -280,5 +288,5 @@ if __name__ == '__main__':
     meteoSwissForecast = MeteoSwissForecast(args.zip_code)
     dataUrl = meteoSwissForecast.getDataUrl()
     data = meteoSwissForecast.collectData(dataUrl, args.days_to_show)
-    meteoSwissForecast.generateGraphic(data, args.file.name, args.extended_style)
+    meteoSwissForecast.generateGraphic(data, args.file.name, args.extended_style, args.time_divisions)
 
