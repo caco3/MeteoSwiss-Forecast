@@ -4,18 +4,29 @@ import pprint
 import time
 import datetime
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import numpy as np
 import math
 import logging
 import argparse
+import os.path
+
+#from svglib.svglib import svg2rlg
+#from reportlab.graphics import renderPM
+#import tempfile
+
 
 class MeteoSwissForecast:
     # Constants
     domain = "https://www.meteoschweiz.admin.ch"
     indexPage = "home.html?tab=overview"
 
-    dataFilePrefix = "/product/output/forecast-chart/version__"
-    dataFileSuffix = ".json"
+    dataUrlPrefix = "/product/output/forecast-chart/version__"
+    dataUrlSuffix = ".json"
+    
+    symbolsUrlPrefix = "/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/"
+    symbolsUrlSuffix = ".svg"
 
     rainColorSteps = [1, 2, 4, 6, 10, 20, 40, 60, 100] # as used in the MeteoSwiss App
     rainColorStepSizes = [1, 1, 2, 2, 4, 10, 20, 20, 40] # Steps between fields in rainColorSteps
@@ -50,10 +61,10 @@ class MeteoSwissForecast:
         req = Request(self.domain + "/" + self.indexPage, headers={'User-Agent': 'Mozilla/5.0'})
         indexPageContent = str(urlopen(req).read())
 
-        dataUrlStartPosition = indexPageContent.find(self.dataFilePrefix)
-        dataUrlEndPosition = indexPageContent.find(self.dataFileSuffix, dataUrlStartPosition)
+        dataUrlStartPosition = indexPageContent.find(self.dataUrlPrefix)
+        dataUrlEndPosition = indexPageContent.find(self.dataUrlSuffix, dataUrlStartPosition)
 
-        dataUrl = self.domain + "/" + indexPageContent[dataUrlStartPosition:dataUrlEndPosition - 6] + str(self.zipCode) + "00" + self.dataFileSuffix
+        dataUrl = self.domain + "/" + indexPageContent[dataUrlStartPosition:dataUrlEndPosition - 6] + str(self.zipCode) + "00" + self.dataUrlSuffix
 
         logging.debug("The data URL is: %s" % dataUrl)
         return dataUrl
@@ -98,16 +109,17 @@ class MeteoSwissForecast:
         for timestamp in timestamps:
             formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%H:%M'))
 
-        rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall")
-        sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine")
-        temperature = self.dataExtractorNormal(forecastData, self.days, "temperature")
-        rainfallVarianceMin, rainfallVarianceMax = self.dataExtractorWithVariance(forecastData, self.days, "variance_rain")
-        temperatureVarianceMin, temperatureVarianceMax = self.dataExtractorWithVariance(forecastData, self.days, "variance_range")
-        wind = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind")
-        windGustPeak = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind_gust_peak")
+        rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall", 1)
+        sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine", 1)
+        temperature = self.dataExtractorNormal(forecastData, self.days, "temperature", 1)
+        rainfallVarianceMin, rainfallVarianceMax = self.dataExtractorWithVariance(forecastData, self.days, "variance_rain", 1, 2)
+        temperatureVarianceMin, temperatureVarianceMax = self.dataExtractorWithVariance(forecastData, self.days, "variance_range", 1, 2)
+        wind = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind", "data", 1)
+        windGustPeak = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind_gust_peak", "data", 1)
 
-        # TODO also extract symbols
-
+        #symbols = self.dataExtractorNormal(forecastData, self.days, "symbols", 1)
+        symbolsTimestamps, symbols = self.dataExtractorSymbols(forecastData, self.days, "symbols", "timestamp", "weather_symbol_id")
+        
         self.data["noOfDays"] = self.days
         self.data["dayNames"] = dayNames
         self.data["timestamps"] = timestamps
@@ -120,6 +132,8 @@ class MeteoSwissForecast:
         self.data["temperatureVarianceMax"] = temperatureVarianceMax
         self.data["wind"] = wind
         self.data["windGustPeak"] = windGustPeak
+        self.data["symbols"] = symbols
+        self.data["symbolsTimestamps"] = symbolsTimestamps
 
         logging.debug("All data parsed")
         return self.data
@@ -128,42 +142,66 @@ class MeteoSwissForecast:
     """
     Extracts the data when it is normal structured
     """
-    def dataExtractorNormal(self, forecastData, days, topic):
+    def dataExtractorNormal(self, forecastData, days, topic, index):
         topicData = []
         for day in range(0, days):
             for hour in range(0, 24):
-                topicData.append(forecastData[day][topic][hour][1])
+                topicData.append(forecastData[day][topic][hour][index])
         return topicData
 
 
     """
     Extracts the data when it is placed in a sub-field
     """
-    def dataExtractorWithDataInSubfield(self, forecastData, days, topic):
+    def dataExtractorWithDataInSubfield(self, forecastData, days, topic, subField, index):
         topicData = []
         for day in range(0, days):
             for hour in range(0, 24):
-                topicData.append(forecastData[day][topic]["data"][hour][1])
+                topicData.append(forecastData[day][topic][subField][hour][index])
         return topicData
 
 
     """
     Extracts the data with a min/max value
     """
-    def dataExtractorWithVariance(self, forecastData, days, topic):
+    def dataExtractorWithVariance(self, forecastData, days, topic, indexMin, indexMax):
         topicDataMin = []
         topicDataMax = []
         for day in range(0, days):
             for hour in range(0, 24):
-                topicDataMin.append(forecastData[day][topic][hour][1])
-                topicDataMax.append(forecastData[day][topic][hour][2])
+                topicDataMin.append(forecastData[day][topic][hour][indexMin])
+                topicDataMax.append(forecastData[day][topic][hour][indexMax])
         return [topicDataMin, topicDataMax]
 
 
+    """
+    Extracts the symbols
+    """
+    def dataExtractorSymbols(self, forecastData, days, topic, indexTS, indexId):
+        timestamps = []
+        ids = []
+        for day in range(0, days):
+            for index in range(0, 8):
+                timestamp = forecastData[day][topic][index][indexTS]
+                timestamps.append(int(int(timestamp) / 1000) + self.utcOffset * 3600)
+                ids.append(forecastData[day][topic][index][indexId])
+        return [timestamps, ids]
 
 
     """
-    
+    Download the symbol and convert it to a png file
+    Does not work, see readme for manual way
+    """
+    #def downloadSymbol(self, id):
+        #req = Request(self.domain + "/" + self.symbolsUrlPrefix + str(id) + self.symbolsUrlSuffix, headers={'User-Agent': 'Mozilla/5.0'})
+        #symbol = urlopen(req).read()
+        #open(tempfile.gettempdir() + "/" + str(id) + '.svg', 'w').write(symbol.decode('utf-8'))
+        #drawing = svg2rlg(tempfile.gettempdir() + "/" + str(id) + ".svg")
+        #renderPM.drawToFile(drawing, tempfile.gettempdir() + "/" + str(id) + ".png", fmt="PNG") # Note, background will be white, see https://github.com/deeplook/svglib/issues/171
+        
+
+    """
+    Generates the graphic containing the forecast
     """
     def generateGraph(self, data, filename, useExtendedStyle, timeDivisions, graphWidth, graphHeight):
         logging.debug("Creating graph...")
@@ -199,6 +237,8 @@ class MeteoSwissForecast:
         #ax1.set_ylabel('Rainfall', color=self.rainColors[1])
         ax1.tick_params(axis='y', labelcolor=self.rainColors[1])
         plt.ylim(0, max(data["rainfall"]) + 1)
+        
+        rainYRange = plt.ylim()
 
         # color bar as y axis (not working)
         #autoAxis = ax1.axis()
@@ -248,7 +288,7 @@ class MeteoSwissForecast:
         ax1.margins(x=0)
         ax2.margins(x=0)
         borders = 0.03
-        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders, bottom=borders+0.13)
+        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.08, bottom=borders+0.13)
 
         if not graphWidth:
             graphWidth = 1280
@@ -264,6 +304,24 @@ class MeteoSwissForecast:
 
         for day in range(0, data["noOfDays"]):
             ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
+
+
+        
+        
+        # Symbols
+        for i in range(0, len(data["symbols"])):
+            symbolFile = "symbols/" + str(data["symbols"][i]) + ".png"
+            if not os.path.isfile(symbolFile):
+                logging.warning("The symbol file %s seems to be missing. Please check the README.md!" % symbolFile)
+                continue
+            symbolImage = mpimg.imread(symbolFile)
+            imagebox = OffsetImage(symbolImage, zoom=0.5)
+            ab = AnnotationBbox(imagebox, (data["symbolsTimestamps"][i], rainYRange[1] * 0.91), frameon=False)
+            # TODO use proper coordinates, place above diagram
+            ax1.add_artist(ab)
+            
+            
+
 
         # Show generation date
         y0, ymax = plt.ylim()
