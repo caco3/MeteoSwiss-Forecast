@@ -198,7 +198,6 @@ class MeteoSwissForecast:
 
         #ax1.set_ylabel('Rainfall', color=self.rainColors[1])
         ax1.tick_params(axis='y', labelcolor=self.rainColors[1])
-
         plt.ylim(0, max(data["rainfall"]) + 1)
 
         # color bar as y axis (not working)
@@ -208,12 +207,15 @@ class MeteoSwissForecast:
         #rec = ax1.add_patch(rec)
         #rec.set_clip_on(False)
 
+
         # Temperature
         color = "red"
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
         ax2.plot(data["timestamps"], data["temperature"], label = "temperature", color=color, linewidth=4)
         #ax2.set_ylabel('Temperature', color=color)
         ax2.tick_params(axis='y', labelcolor=color)
+        ax2.yaxis.tick_left()
+        ax1.yaxis.tick_right()
 
         plt.grid(True)
 
@@ -223,7 +225,8 @@ class MeteoSwissForecast:
 
         # Temperature variance
         color = "red"
-        ax3 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+        ax3 = ax2.twinx()  # instantiate a second axes that shares the same x-axis
+        ax3.axes.yaxis.set_visible(False)
 
         ax3.fill_between(data["timestamps"], data["temperatureVarianceMin"], data["temperatureVarianceMax"], facecolor='red', alpha=0.2)
         ax3.tick_params(axis='y', labelcolor=color)
@@ -245,7 +248,7 @@ class MeteoSwissForecast:
         ax1.margins(x=0)
         ax2.margins(x=0)
         borders = 0.03
-        plt.subplots_adjust(left=borders, right=1-borders-0.01, top=1-borders, bottom=borders+0.13)
+        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders, bottom=borders+0.13)
 
         if not graphWidth:
             graphWidth = 1280
@@ -296,5 +299,6 @@ if __name__ == '__main__':
     meteoSwissForecast = MeteoSwissForecast(args.zip_code)
     dataUrl = meteoSwissForecast.getDataUrl()
     data = meteoSwissForecast.collectData(dataUrl, args.days_to_show)
+    #pprint.pprint(data)
     meteoSwissForecast.generateGraph(data, args.file.name, args.extended_style, args.time_divisions, args.width, args.height)
 
