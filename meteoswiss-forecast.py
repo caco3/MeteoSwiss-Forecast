@@ -307,13 +307,13 @@ class MeteoSwissForecast:
         ax1.margins(x=0)
         ax2.margins(x=0)
         borders = 0.03
-        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.08, bottom=borders+0.13)
+        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.15)
 
         if not graphWidth:
             graphWidth = 1280
         if not graphHeight:
             graphHeight = 300
-        print(graphWidth, graphHeight)
+        logging.debug("Graph size: %dy%d" % (graphWidth, graphHeight))
         fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
 
         # Print day names
@@ -332,18 +332,17 @@ class MeteoSwissForecast:
                 logging.warning("The symbol file %s seems to be missing. Please check the README.md!" % symbolFile)
                 continue
             symbolImage = mpimg.imread(symbolFile)
-            imagebox = OffsetImage(symbolImage, zoom=0.5)
-            ab = AnnotationBbox(imagebox, (data["symbolsTimestamps"][i], rainYRange[1] * 0.91), frameon=False)
-            # TODO use proper coordinates, place above diagram
+            imagebox = OffsetImage(symbolImage, zoom=0.1)
+            xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 28
+            ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
             ax1.add_artist(ab)
 
-
         # Show generation date
-        y0, ymax = plt.ylim()
-        # TODO use absolute position in pixel
-        # TODO show date/time of forcast model run
-        #plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
-        ax1.annotate("Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")), xy=(width-10, height - 20), xycoords='axes pixels', ha="right")
+        #y0, ymax = plt.ylim()
+        ## TODO use absolute position in pixel
+        ## TODO show date/time of forcast model run
+        ##plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
+        #ax1.annotate("Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")), xy=(width-10, height - 20), xycoords='axes pixels', ha="right")
 
         logging.debug("Saving graph to %s" % outputFilename)
         plt.savefig(outputFilename)
