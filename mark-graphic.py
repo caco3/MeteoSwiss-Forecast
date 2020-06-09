@@ -57,6 +57,6 @@ if __name__ == '__main__':
 
     pixelPerTime = pixelPerMinute * (hour * 60 + minute)
 
-    d.line([(x + pixelPerTime, y - 1), (x + pixelPerTime, y + h)], fill='red', width=1)
+    d.line([(x + pixelPerTime, y - 1), (x + pixelPerTime, y + h)], fill='red', width=2)
 
     im.save(args.o.name)
