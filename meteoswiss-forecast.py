@@ -75,8 +75,9 @@ class MeteoSwissForecast:
     """
     def collectData(self, dataUrl, daysToUse):
         logging.debug("Downloading data from %s..." % dataUrl)
-        req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0'})
+        req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
         forcastDataPlain = (urlopen(req).read()).decode('utf-8')
+
         logging.debug("Download completed")
         forecastData = json.loads(forcastDataPlain)
 
@@ -296,7 +297,6 @@ class MeteoSwissForecast:
             graphHeight = 300
         fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
 
-
         # Print day names
         bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         width, height = bbox.width * fig.dpi, bbox.height * fig.dpi
@@ -306,8 +306,6 @@ class MeteoSwissForecast:
             ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
 
 
-        
-        
         # Symbols
         for i in range(0, len(data["symbols"])):
             symbolFile = "symbols/" + str(data["symbols"][i]) + ".png"
@@ -319,8 +317,6 @@ class MeteoSwissForecast:
             ab = AnnotationBbox(imagebox, (data["symbolsTimestamps"][i], rainYRange[1] * 0.91), frameon=False)
             # TODO use proper coordinates, place above diagram
             ax1.add_artist(ab)
-            
-            
 
 
         # Show generation date
@@ -344,7 +340,7 @@ if __name__ == '__main__':
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel')
-    parser.add_argument('--time-divisions', action='store', type=int, help='DIstance in hours between time labels')
+    parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels')
 
     args = parser.parse_args()
 
