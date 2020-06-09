@@ -6,6 +6,7 @@ import datetime
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
+import matplotlib.lines as mlines
 import numpy as np
 import math
 import logging
@@ -71,6 +72,18 @@ class MeteoSwissForecast:
 
 
     """
+    Extracts the timestamp of when the model was calculated by meteoSwiss
+    """
+    def getModelCalculationTimestamp(self, dataUrl):
+        arr = dataUrl.split("__")
+        # Example of arr[1]: 20200609_0913/de/862000.json
+        arr = arr[1].split("/")
+        # Example of arr[0]: 20200609_0913
+        return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple())) + 2*self.utcOffset * 3600
+
+
+
+    """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
     def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False):
@@ -96,6 +109,7 @@ class MeteoSwissForecast:
         rainfall = []
 
         logging.debug("Parsing data...")
+        self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(dataUrl)
         for day in range(0, self.days):
             # get day names
             dayNames.append(forecastData[day]["day_string"]) # name of the day
@@ -242,6 +256,10 @@ class MeteoSwissForecast:
         plt.ylim(0, max(data["rainfall"]) + 1)
         
         rainYRange = plt.ylim()
+
+        # Show when the model was last calculated
+        l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainYRange[1]])
+        ax1.add_line(l)
 
         # color bar as y axis (not working)
         #autoAxis = ax1.axis()
