@@ -16,7 +16,6 @@ import os.path
 #from reportlab.graphics import renderPM
 #import tempfile
 
-
 class MeteoSwissForecast:
     # Constants
     domain = "https://www.meteoschweiz.admin.ch"
@@ -37,7 +36,7 @@ class MeteoSwissForecast:
     days = 0
     data = {}
 
-    def __init__(self, zipCode):
+    def __init__(self):
         # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
         ts = time.time()
         utcOffset = (datetime.datetime.fromtimestamp(ts) -
@@ -45,8 +44,6 @@ class MeteoSwissForecast:
         self.utcOffset = int(utcOffset / 3600) # in hours
         logging.debug("UTC offset: %dh" % self.utcOffset)
 
-        self.zipCode = zipCode
-        logging.debug("Using data for location with zip code %d" % self.zipCode)
 
 
     """
@@ -57,7 +54,10 @@ class MeteoSwissForecast:
     The 1122 is the time the forecast model got run by Meteo Swiss
     Since we do not know when the last forecast model got run, we have to parse the Meteo Swiss index page and take it from there.
     """
-    def getDataUrl(self):
+    def getDataUrl(self, zipCode):
+        self.zipCode = zipCode
+        logging.debug("Using data for location with zip code %d" % self.zipCode)
+
         req = Request(self.domain + "/" + self.indexPage, headers={'User-Agent': 'Mozilla/5.0'})
         indexPageContent = str(urlopen(req).read())
 
@@ -73,7 +73,7 @@ class MeteoSwissForecast:
     """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
-    def collectData(self, dataUrl, daysToUse):
+    def collectData(self, dataUrl=None, daysToUse=7):
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
         forcastDataPlain = (urlopen(req).read()).decode('utf-8')
@@ -204,7 +204,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data, filename, useExtendedStyle, timeDivisions, graphWidth, graphHeight):
+    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300):
         logging.debug("Creating graph...")
         fig, ax1 = plt.subplots()
 
@@ -276,8 +276,6 @@ class MeteoSwissForecast:
 
 
         # Time axis
-        if not timeDivisions:
-            timeDivisions = 3 # 3 hours between ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
 
         # Time ticks        
@@ -295,6 +293,7 @@ class MeteoSwissForecast:
             graphWidth = 1280
         if not graphHeight:
             graphHeight = 300
+        print(graphWidth, graphHeight)
         fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
 
         # Print day names
@@ -326,8 +325,8 @@ class MeteoSwissForecast:
         #plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
         ax1.annotate("Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")), xy=(width-10, height - 20), xycoords='axes pixels', ha="right")
 
-        logging.debug("Saving graph to %s" % filename)
-        plt.savefig(filename)
+        logging.debug("Saving graph to %s" % outputFilename)
+        plt.savefig(outputFilename)
 
 
 
@@ -350,9 +349,9 @@ if __name__ == '__main__':
 
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logLevel)
 
-    meteoSwissForecast = MeteoSwissForecast(args.zip_code)
-    dataUrl = meteoSwissForecast.getDataUrl()
-    data = meteoSwissForecast.collectData(dataUrl, args.days_to_show)
-    #pprint.pprint(data)
-    meteoSwissForecast.generateGraph(data, args.file.name, args.extended_style, args.time_divisions, args.width, args.height)
+    meteoSwissForecast = MeteoSwissForecast()
+    dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
+    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show)
+    #pprint.pprint(forecastData)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height)
 
