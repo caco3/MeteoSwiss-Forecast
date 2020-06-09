@@ -12,6 +12,6 @@ mkdir symbols
 cd symbols
 for i in {1..35}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
 for i in {100..135}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
-for f in *.svg; do convert -background transparent $f ${f%.svg}.png; done
+for f in *.svg; do convert -background transparent -resize 256x256 -density 500 $f ${f%.svg}.png; done
 rm *.svg
 ```
