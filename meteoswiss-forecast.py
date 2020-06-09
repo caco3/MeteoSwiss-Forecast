@@ -324,6 +324,9 @@ class MeteoSwissForecast:
         for day in range(0, data["noOfDays"]):
             ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
 
+        # Show y-axis units
+        ax1.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color='blue')
+        ax1.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color='red')
 
         # Symbols
         for i in range(0, len(data["symbols"])):
