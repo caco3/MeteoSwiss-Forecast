@@ -73,7 +73,7 @@ class MeteoSwissForecast:
     """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
-    def collectData(self, dataUrl=None, daysToUse=7):
+    def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False):
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
         forcastDataPlain = (urlopen(req).read()).decode('utf-8')
@@ -108,8 +108,10 @@ class MeteoSwissForecast:
 
         dayIndex = 0
         for timestamp in timestamps:
-            formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%H:%M'))
-
+            if compactTimeFormat:
+                formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%-H'))
+            else:
+                formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%H:%M'))
         rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall", 1)
         sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine", 1)
         temperature = self.dataExtractorNormal(forecastData, self.days, "temperature", 1)
@@ -340,6 +342,7 @@ if __name__ == '__main__':
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel')
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels')
+    parser.add_argument('--compact-time-format', action='store_true', help='Show only hours instead of Hours and Minutes')
 
     args = parser.parse_args()
 
@@ -351,7 +354,7 @@ if __name__ == '__main__':
 
     meteoSwissForecast = MeteoSwissForecast()
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
-    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show)
+    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format)
     #pprint.pprint(forecastData)
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height)
 
