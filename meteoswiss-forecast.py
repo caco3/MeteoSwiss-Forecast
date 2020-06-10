@@ -262,7 +262,7 @@ class MeteoSwissForecast:
             ax1.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
 
         #ax1.set_ylabel('Rainfall', color=colors["rain-axis"])
-        ax1.tick_params(axis='y', labelcolor=colors["x-axis"])
+        ax1.tick_params(axis='y', labelcolor=colors["rain-axis"])
         plt.ylim(0, max(data["rainfall"]) + 1)
         
         rainYRange = plt.ylim()
@@ -291,8 +291,10 @@ class MeteoSwissForecast:
         plt.grid(True)
 
         # Make sure minimum temperature is 0 or lower
-        # Make sure temperature max is multiple of 5
-        plt.ylim(min(0, min(data["temperatureVarianceMin"])), math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5)
+        # Make sure the temperature range is multiple of 5
+        temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5) * 5
+        temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5
+        plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
         # Temperature variance
         color = "red"
@@ -302,7 +304,7 @@ class MeteoSwissForecast:
         ax3.fill_between(data["timestamps"], data["temperatureVarianceMin"], data["temperatureVarianceMax"], facecolor='red', alpha=0.2)
         ax3.tick_params(axis='y', labelcolor=color)
 
-        plt.ylim(min(0, min(data["temperatureVarianceMin"])), math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5)
+        plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
 
         # Time axis
