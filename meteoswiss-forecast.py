@@ -322,7 +322,7 @@ class MeteoSwissForecast:
         xPixelsPerDay = width / data["noOfDays"]
 
         for day in range(0, data["noOfDays"]):
-            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center")
+            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold')
 
         # Show y-axis units
         ax1.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color='blue')
