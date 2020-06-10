@@ -28,12 +28,17 @@ class MeteoSwissForecast:
     symbolsUrlPrefix = "/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/"
     symbolsUrlSuffix = ".svg"
 
+    # MeteoSwiss preset
     rainColorSteps = [1, 2, 4, 6, 10, 20, 40, 60, 100] # as used in the MeteoSwiss App
     rainColorStepSizes = [1, 1, 2, 2, 4, 10, 20, 20, 40] # Steps between fields in rainColorSteps
     rainColors = ["#9d7d95", "#0001f9", "#088b2d", "#02ff07", "#70e900", "#feff01", "#ffc900", "#fe1a00", "#ac00e0"] # as used in the MeteoSwiss App
 
-    utcOffset = 0
+    # Surounding colors
+    colorsLightMode = {"background": "white", "x-axis": "black", "rain-axis": "#0001f9", "temperature-axis": "red"}
+    colorsDarkMode = {"background": "black", "x-axis": "white", "rain-axis": "lightblue", "temperature-axis": "red"}
 
+
+    utcOffset = 0
     days = 0
     data = {}
 
@@ -215,20 +220,25 @@ class MeteoSwissForecast:
         #open(tempfile.gettempdir() + "/" + str(id) + '.svg', 'w').write(symbol.decode('utf-8'))
         #drawing = svg2rlg(tempfile.gettempdir() + "/" + str(id) + ".svg")
         #renderPM.drawToFile(drawing, tempfile.gettempdir() + "/" + str(id) + ".png", fmt="PNG") # Note, background will be white, see https://github.com/deeplook/svglib/issues/171
-        
+
 
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300):
+    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False):
         logging.debug("Creating graph...")
+        if darkMode:
+            colors = self.colorsDarkMode
+        else:
+            colors = self.colorsLightMode
+
         fig, ax1 = plt.subplots()
 
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
             plt.axvspan(data["timestamps"][0 + day * 24], data["timestamps"][23 + day * 24] + 3600, facecolor='gray', alpha=0.2)
 
-        # Rain
+        # Rain (data gets splitted to stacked bars)
         rainBars = [0] * len(self.rainColorSteps)
 
         for i in range(0, len(self.rainColorSteps)):
@@ -244,15 +254,15 @@ class MeteoSwissForecast:
                     else:
                         rainBars[i].append(rain)
                     continue
-            
+
         ax1.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge')
         bottom = [0] * len(rainBars[0])
         for i in range(1, len(self.rainColorSteps)):
             bottom = np.add(bottom, rainBars[i-1]).tolist()
             ax1.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
 
-        #ax1.set_ylabel('Rainfall', color=self.rainColors[1])
-        ax1.tick_params(axis='y', labelcolor=self.rainColors[1])
+        #ax1.set_ylabel('Rainfall', color=colors["rain-axis"])
+        ax1.tick_params(axis='y', labelcolor=colors["x-axis"])
         plt.ylim(0, max(data["rainfall"]) + 1)
         
         rainYRange = plt.ylim()
@@ -274,7 +284,7 @@ class MeteoSwissForecast:
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
         ax2.plot(data["timestamps"], data["temperature"], label = "temperature", color=color, linewidth=4)
         #ax2.set_ylabel('Temperature', color=color)
-        ax2.tick_params(axis='y', labelcolor=color)
+        ax2.tick_params(axis='y', labelcolor=colors["temperature-axis"])
         ax2.yaxis.tick_left()
         ax1.yaxis.tick_right()
 
@@ -299,7 +309,7 @@ class MeteoSwissForecast:
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
 
         # Time ticks        
-        ax1.tick_params(axis='x')
+        ax1.tick_params(axis='x', colors=colors["x-axis"])
 
 
         # Plot dimension and borders
@@ -322,11 +332,11 @@ class MeteoSwissForecast:
         xPixelsPerDay = width / data["noOfDays"]
 
         for day in range(0, data["noOfDays"]):
-            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold')
+            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
 
         # Show y-axis units
-        ax1.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color='blue')
-        ax1.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color='red')
+        ax1.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
+        ax1.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
         # Symbols
         for i in range(0, len(data["symbols"])):
@@ -346,9 +356,8 @@ class MeteoSwissForecast:
         ## TODO show date/time of forcast model run
         ##plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
         #ax1.annotate("Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")), xy=(width-10, height - 20), xycoords='axes pixels', ha="right")
-
         logging.debug("Saving graph to %s" % outputFilename)
-        plt.savefig(outputFilename)
+        plt.savefig(outputFilename, facecolor=colors["background"])
 
 
 
@@ -363,6 +372,7 @@ if __name__ == '__main__':
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel')
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels')
     parser.add_argument('--compact-time-format', action='store_true', help='Show only hours instead of Hours and Minutes')
+    parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
 
     args = parser.parse_args()
 
@@ -376,5 +386,5 @@ if __name__ == '__main__':
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format)
     #pprint.pprint(forecastData)
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode)
 
