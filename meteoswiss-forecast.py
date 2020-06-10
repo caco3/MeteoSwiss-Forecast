@@ -5,6 +5,7 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from matplotlib.patches import Circle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
 import numpy as np
@@ -290,7 +291,6 @@ class MeteoSwissForecast:
 
         plt.grid(True)
 
-        # Make sure minimum temperature is 0 or lower
         # Make sure the temperature range is multiple of 5
         temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5) * 5
         temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5
@@ -306,11 +306,28 @@ class MeteoSwissForecast:
 
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
+        # Mark min/max temperature per day
+        da = DrawingArea(2, 2, 0, 0)
+        da.add_artist(Circle((0, 0), 4, color="red", fc="white", lw=2))
+        for day in range(0, data["noOfDays"]):
+            maxTemperatureOfDay = {"data": -100, "timestamp": 0}
+            minTemperatureOfDay = {"data": +100, "timestamp": 0}
+            for h in range(0, 24):
+                if data["temperature"][day * 24 + h] > maxTemperatureOfDay["data"]:
+                    maxTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
+                    maxTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
+                if data["temperature"][day * 24 + h] < minTemperatureOfDay["data"]:
+                    minTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
+                    minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
 
-        # Time axis
+            # TODO the y offset should be in pixel and not °C!
+            ax3.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + 1),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold')
+            ax3.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+            ax3.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] -2),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold')
+            ax3.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+
+        # Time axis and ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
-
-        # Time ticks        
         ax1.tick_params(axis='x', colors=colors["x-axis"])
 
 
