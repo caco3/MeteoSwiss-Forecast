@@ -350,12 +350,6 @@ class MeteoSwissForecast:
             ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
             ax1.add_artist(ab)
 
-        # Show generation date
-        #y0, ymax = plt.ylim()
-        ## TODO use absolute position in pixel
-        ## TODO show date/time of forcast model run
-        ##plt.text(data["timestamps"][0], ymax * 0.96, " " + "Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")))
-        #ax1.annotate("Last updated on " + str(datetime.datetime.now().strftime("%d. %b %Y %H:%M:%S")), xy=(width-10, height - 20), xycoords='axes pixels', ha="right")
         logging.debug("Saving graph to %s" % outputFilename)
         plt.savefig(outputFilename, facecolor=colors["background"])
 
