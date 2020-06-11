@@ -38,6 +38,7 @@ class MeteoSwissForecast:
     colorsLightMode = {"background": "white", "x-axis": "black", "rain-axis": "#0001f9", "temperature-axis": "red"}
     colorsDarkMode = {"background": "black", "x-axis": "white", "rain-axis": "lightblue", "temperature-axis": "red"}
 
+    temperatureColor = "red"
 
     utcOffset = 0
     days = 0
@@ -232,7 +233,7 @@ class MeteoSwissForecast:
         else:
             colors = self.colorsLightMode
 
-        fig, ax1 = plt.subplots()
+        fig, rainAxis = plt.subplots()
 
 
         if not graphWidth:
@@ -243,9 +244,22 @@ class MeteoSwissForecast:
         fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
 
 
+        # Plot dimension and borders
+        plt.margins(x=0)
+        rainAxis.margins(x=0)
+        borders = 0.03
+        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.15)
+
+
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
             plt.axvspan(data["timestamps"][0 + day * 24], data["timestamps"][23 + day * 24] + 3600, facecolor='gray', alpha=0.2)
+
+
+        # Time axis and ticks
+        plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
+        rainAxis.tick_params(axis='x', colors=colors["x-axis"])
+
 
         # Rain (data gets splitted to stacked bars)
         rainBars = [0] * len(self.rainColorSteps)
@@ -264,51 +278,56 @@ class MeteoSwissForecast:
                         rainBars[i].append(rain)
                     continue
 
-        ax1.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge')
+        rainAxis.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge')
         bottom = [0] * len(rainBars[0])
         for i in range(1, len(self.rainColorSteps)):
             bottom = np.add(bottom, rainBars[i-1]).tolist()
-            ax1.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
+            rainAxis.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
 
-        #ax1.set_ylabel('Rainfall', color=colors["rain-axis"])
-        ax1.tick_params(axis='y', labelcolor=colors["rain-axis"])
+        #rainAxis.set_ylabel('Rainfall', color=colors["rain-axis"])
+        rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"])
         plt.ylim(0, max(data["rainfall"]) + 1)
+
 
         # Show when the model was last calculated
         rainYRange = plt.ylim()
         l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainYRange[1]])
-        ax1.add_line(l)
+        rainAxis.add_line(l)
+
 
         # Temperature
-        color = "red"
-        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-        ax2.plot(data["timestamps"], data["temperature"], label = "temperature", color=color, linewidth=4)
-        #ax2.set_ylabel('Temperature', color=color)
-        ax2.tick_params(axis='y', labelcolor=colors["temperature-axis"])
-        ax2.yaxis.tick_left()
-        ax1.yaxis.tick_right()
+        temperatureAxis = rainAxis.twinx()  # instantiate a second axes that shares the same x-axis
+        temperatureAxis.plot(data["timestamps"], data["temperature"], label = "temperature", color=self.temperatureColor, linewidth=4)
+        #temperatureAxis.set_ylabel('Temperature', color=self.temperatureColor)
+        temperatureAxis.tick_params(axis='y', labelcolor=colors["temperature-axis"])
+        temperatureAxis.grid(True)
 
-        plt.grid(True)
+
+        # Position the Y Scales
+        temperatureAxis.yaxis.tick_left()
+        rainAxis.yaxis.tick_right()
+
 
         # Make sure the temperature range is multiple of 5
         temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
         temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
-        # Temperature variance
-        color = "red"
-        ax3 = ax2.twinx()  # instantiate a second axes that shares the same x-axis
-        ax3.axes.yaxis.set_visible(False)
 
-        ax3.fill_between(data["timestamps"], data["temperatureVarianceMin"], data["temperatureVarianceMax"], facecolor='red', alpha=0.2)
-        ax3.tick_params(axis='y', labelcolor=color)
+        # Temperature variance
+        temperatureVarianceAxis = temperatureAxis.twinx()  # instantiate a second axes that shares the same x-axis
+        temperatureVarianceAxis.axes.yaxis.set_visible(False)
+
+        temperatureVarianceAxis.fill_between(data["timestamps"], data["temperatureVarianceMin"], data["temperatureVarianceMax"], facecolor=self.temperatureColor, alpha=0.2)
+        temperatureVarianceAxis.tick_params(axis='y', labelcolor=self.temperatureColor)
 
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
+
 
         # Mark min/max temperature per day
         if minMaxTemperature:
             da = DrawingArea(2, 2, 0, 0)
-            da.add_artist(Circle((0, 0), 4, color="red", fc="white", lw=2))
+            da.add_artist(Circle((0, 0), 4, color=self.temperatureColor, fc="white", lw=2))
             for day in range(0, data["noOfDays"]):
                 maxTemperatureOfDay = {"data": -100, "timestamp": 0}
                 minTemperatureOfDay = {"data": +100, "timestamp": 0}
@@ -322,29 +341,19 @@ class MeteoSwissForecast:
 
                 # TODO the y offset should be in pixel and not °C!
                 bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-                ax3.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + 1),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
-                ax3.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
-                ax3.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] -1.5),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
-                ax3.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+                temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + 1),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+                temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] -1.5),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
-        # Time axis and ticks
-        plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
-        ax1.tick_params(axis='x', colors=colors["x-axis"])
-
-
-        # Plot dimension and borders
-        plt.margins(x=0)
-        ax1.margins(x=0)
-        borders = 0.03
-        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.15)
 
         # Print day names
-        bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
         xPixelsPerDay = width / data["noOfDays"]
 
         for day in range(0, data["noOfDays"]):
-            ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
+            rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
 
 
         # rain color bar as y axis (not working)
@@ -360,14 +369,15 @@ class MeteoSwissForecast:
         #da.add_artist(Rectangle((0, 100), 4,  5 * height / rainYRange[1], fc=self.rainColors[0], lw=0))
         ##da.add_artist(Rectangle((0, 110), 4,  10*2, fc=self.rainColors[1], lw=0))
         #ab = AnnotationBbox(da, xy=xyPos, xycoords='axes pixels')
-        #ax1.add_artist(ab)
+        #rainAxis.add_artist(ab)
 
 
         # Show y-axis units
-        ax1.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
-        ax1.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
+        rainAxis.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
+        rainAxis.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
-        # Symbols
+
+        # Show Symbols above the graph
         for i in range(0, len(data["symbols"])):
             symbolFile = "symbols/" + str(data["symbols"][i]) + ".png"
             if not os.path.isfile(symbolFile):
@@ -377,8 +387,9 @@ class MeteoSwissForecast:
             imagebox = OffsetImage(symbolImage, zoom=0.1)
             xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 28
             ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
-            ax1.add_artist(ab)
+            rainAxis.add_artist(ab)
 
+        # Save the graph in a png image file
         logging.debug("Saving graph to %s" % outputFilename)
         plt.savefig(outputFilename, facecolor=colors["background"])
 
