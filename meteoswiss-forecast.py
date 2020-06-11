@@ -13,6 +13,7 @@ import math
 import logging
 import argparse
 import os.path
+import json
 
 #from svglib.svglib import svg2rlg
 #from reportlab.graphics import renderPM
@@ -224,6 +225,23 @@ class MeteoSwissForecast:
 
 
     """
+    Exports a JSON file containing the forecast data ( as generated with the collectData() function) 
+    """
+    def exportForecastData(self, forecastData, outputFilename):
+        with open(outputFilename, 'w') as outfile:
+            json.dump(forecastData, outfile)
+
+
+    """
+    Import a JSON file containing the forecast data ( as generated with the collectData() function) 
+    """
+    def importForecastData(self, inputFilename):
+        with open(inputFilename) as forecastData:
+            return json.load(forecastData)
+
+
+
+    """
     Generates the graphic containing the forecast
     """
     def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False, minMaxTemperature=False):
@@ -421,5 +439,7 @@ if __name__ == '__main__':
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format)
     #pprint.pprint(forecastData)
+    meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
+    #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures)
 
