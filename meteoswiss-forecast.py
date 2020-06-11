@@ -5,7 +5,7 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, Rectangle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
 import numpy as np
@@ -234,6 +234,15 @@ class MeteoSwissForecast:
 
         fig, ax1 = plt.subplots()
 
+
+        if not graphWidth:
+            graphWidth = 1280
+        if not graphHeight:
+            graphHeight = 300
+        logging.debug("Graph size: %dy%d" % (graphWidth, graphHeight))
+        fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
+
+
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
             plt.axvspan(data["timestamps"][0 + day * 24], data["timestamps"][23 + day * 24] + 3600, facecolor='gray', alpha=0.2)
@@ -264,20 +273,11 @@ class MeteoSwissForecast:
         #ax1.set_ylabel('Rainfall', color=colors["rain-axis"])
         ax1.tick_params(axis='y', labelcolor=colors["rain-axis"])
         plt.ylim(0, max(data["rainfall"]) + 1)
-        
-        rainYRange = plt.ylim()
 
         # Show when the model was last calculated
+        rainYRange = plt.ylim()
         l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainYRange[1]])
         ax1.add_line(l)
-
-        # color bar as y axis (not working)
-        #autoAxis = ax1.axis()
-        ##rec = plt.Rectangle((autoAxis[0]-0.7,autoAxis[2]-0.2),(autoAxis[1]-autoAxis[0])+1,(autoAxis[3]-autoAxis[2])+0.4,fill=False,lw=2)
-        #rec = plt.Rectangle((data["timestamps"][0] - 10000, 0),  10000, 1  , fill=False, lw=2)
-        #rec = ax1.add_patch(rec)
-        #rec.set_clip_on(False)
-
 
         # Temperature
         color = "red"
@@ -335,24 +335,33 @@ class MeteoSwissForecast:
         # Plot dimension and borders
         plt.margins(x=0)
         ax1.margins(x=0)
-        ax2.margins(x=0)
         borders = 0.03
         plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.15)
 
-        if not graphWidth:
-            graphWidth = 1280
-        if not graphHeight:
-            graphHeight = 300
-        logging.debug("Graph size: %dy%d" % (graphWidth, graphHeight))
-        fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
-
         # Print day names
         bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi
+        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
         xPixelsPerDay = width / data["noOfDays"]
 
         for day in range(0, data["noOfDays"]):
             ax1.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
+
+
+        # rain color bar as y axis (not working)
+        # TODO why needs the DrawingArea this odd size?
+        #xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay + 4 / xPixelsPerDay, height + 28
+        #xyPos = (width + 4, 0)
+        #da = DrawingArea(1, 200)
+
+        #print(height, rainYRange[1])
+
+        ##for i in range(0, len(self.rainColorSteps)):
+            ##print(self.rainColorSteps[i], self.rainColorStepSizes[i])
+        #da.add_artist(Rectangle((0, 100), 4,  5 * height / rainYRange[1], fc=self.rainColors[0], lw=0))
+        ##da.add_artist(Rectangle((0, 110), 4,  10*2, fc=self.rainColors[1], lw=0))
+        #ab = AnnotationBbox(da, xy=xyPos, xycoords='axes pixels')
+        #ax1.add_artist(ab)
+
 
         # Show y-axis units
         ax1.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
