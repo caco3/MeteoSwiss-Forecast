@@ -29,10 +29,10 @@ class MeteoSwissForecast:
     symbolsUrlPrefix = "/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/"
     symbolsUrlSuffix = ".svg"
 
-    # MeteoSwiss preset
+    # MeteoSwiss preset (Violet, Blue, Green, Light Green, Yellow, Light Orange, Orange, Red, Violet)
     rainColorSteps = [1, 2, 4, 6, 10, 20, 40, 60, 100] # as used in the MeteoSwiss App
     rainColorStepSizes = [1, 1, 2, 2, 4, 10, 20, 20, 40] # Steps between fields in rainColorSteps
-    rainColors = ["#9d7d95", "#0001f9", "#088b2d", "#02ff07", "#70e900", "#feff01", "#ffc900", "#fe1a00", "#ac00e0"] # as used in the MeteoSwiss App
+    rainColors = ["#9d7d95", "#0001f9", "#088b2d", "#06fd0c", "#fffe00", "#ffc703", "#fc7e06", "#fe1a00", "#ac00e0"] # as used in the MeteoSwiss App
 
     # Surounding colors
     colorsLightMode = {"background": "white", "x-axis": "black", "rain-axis": "#0001f9", "temperature-axis": "red"}
