@@ -52,7 +52,6 @@ class MeteoSwissForecast:
         logging.debug("UTC offset: %dh" % self.utcOffset)
 
 
-
     """
     Gets the data URL
     Example Data URL: https://www.meteoschweiz.admin.ch//product/output/forecast-chart/version__20200605_1122/de/800100.json
@@ -292,7 +291,7 @@ class MeteoSwissForecast:
         plt.grid(True)
 
         # Make sure the temperature range is multiple of 5
-        temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5) * 5
+        temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
         temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
