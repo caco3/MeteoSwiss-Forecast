@@ -225,7 +225,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False):
+    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False, minMaxTemperature=False):
         logging.debug("Creating graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -306,25 +306,26 @@ class MeteoSwissForecast:
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
         # Mark min/max temperature per day
-        da = DrawingArea(2, 2, 0, 0)
-        da.add_artist(Circle((0, 0), 4, color="red", fc="white", lw=2))
-        for day in range(0, data["noOfDays"]):
-            maxTemperatureOfDay = {"data": -100, "timestamp": 0}
-            minTemperatureOfDay = {"data": +100, "timestamp": 0}
-            for h in range(0, 24):
-                if data["temperature"][day * 24 + h] > maxTemperatureOfDay["data"]:
-                    maxTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
-                    maxTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
-                if data["temperature"][day * 24 + h] < minTemperatureOfDay["data"]:
-                    minTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
-                    minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
+        if minMaxTemperature:
+            da = DrawingArea(2, 2, 0, 0)
+            da.add_artist(Circle((0, 0), 4, color="red", fc="white", lw=2))
+            for day in range(0, data["noOfDays"]):
+                maxTemperatureOfDay = {"data": -100, "timestamp": 0}
+                minTemperatureOfDay = {"data": +100, "timestamp": 0}
+                for h in range(0, 24):
+                    if data["temperature"][day * 24 + h] > maxTemperatureOfDay["data"]:
+                        maxTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
+                        maxTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
+                    if data["temperature"][day * 24 + h] < minTemperatureOfDay["data"]:
+                        minTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
+                        minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
 
-            # TODO the y offset should be in pixel and not °C!
-            bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-            ax3.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + 1),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
-            ax3.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
-            ax3.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] -1.5),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
-            ax3.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+                # TODO the y offset should be in pixel and not °C!
+                bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+                ax3.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + 1),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                ax3.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+                ax3.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] -1.5),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                ax3.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
         # Time axis and ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
@@ -386,6 +387,7 @@ if __name__ == '__main__':
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels')
     parser.add_argument('--compact-time-format', action='store_true', help='Show only hours instead of Hours and Minutes')
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
+    parser.add_argument('--min-max-temperatures', action='store_true', help='Show min/max temperature per day')
 
     args = parser.parse_args()
 
@@ -399,5 +401,5 @@ if __name__ == '__main__':
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format)
     #pprint.pprint(forecastData)
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures)
 
