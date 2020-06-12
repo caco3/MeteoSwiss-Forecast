@@ -310,12 +310,29 @@ class MeteoSwissForecast:
             rainAxis.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
 
         #rainAxis.set_ylabel('Rainfall', color=colors["rain-axis"])
-        rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"])
+        rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"], width=0, length=8)
         plt.ylim(0, max(data["rainfall"]) + 1)
 
 
-        # Show when the model was last calculated
+        # Rain color bar as y axis
         rainYRange = plt.ylim()
+        plt.xlim(data["timestamps"][0], data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]))
+        pixelToRainX = 1 / xPixelsPerDay * (data["timestamps"][23] - data["timestamps"][0])
+        x = data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]) # end of x
+        w = 7 * pixelToRainX
+
+        for i in range(0, len(self.rainColorSteps)):
+            y = self.rainColorSteps[i] - self.rainColorStepSizes[i]
+            if y >= rainYRange[1]:
+                break
+            h = min(rainYRange[1] - y, self.rainColorSteps[i] + self.rainColorStepSizes[i])
+            rainScaleBar = Rectangle((x, y), w, h, fc=self.rainColors[i], alpha=1)
+            rainAxis.add_patch(rainScaleBar)
+            rainScaleBar.set_clip_on(False)
+
+        rainScaleBorder = Rectangle((x, 0), w, rainYRange[1], fc="black", fill=False, alpha=1)
+        rainAxis.add_patch(rainScaleBorder)
+        rainScaleBorder.set_clip_on(False)
 
         # Show when the model was last calculated
         l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainYRange[1]])
@@ -377,22 +394,6 @@ class MeteoSwissForecast:
         # Print day names
         for day in range(0, data["noOfDays"]):
             rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
-
-
-        # rain color bar as y axis (not working)
-        # TODO why needs the DrawingArea this odd size?
-        #xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay + 4 / xPixelsPerDay, height + 28
-        #xyPos = (width + 4, 0)
-        #da = DrawingArea(1, 200)
-
-        #print(height, rainYRange[1])
-
-        ##for i in range(0, len(self.rainColorSteps)):
-            ##print(self.rainColorSteps[i], self.rainColorStepSizes[i])
-        #da.add_artist(Rectangle((0, 100), 4,  5 * height / rainYRange[1], fc=self.rainColors[0], lw=0))
-        ##da.add_artist(Rectangle((0, 110), 4,  10*2, fc=self.rainColors[1], lw=0))
-        #ab = AnnotationBbox(da, xy=xyPos, xycoords='axes pixels')
-        #rainAxis.add_artist(ab)
 
 
         # Show y-axis units
