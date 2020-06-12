@@ -94,6 +94,7 @@ class MeteoSwissForecast:
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
     def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False):
+        self.data["dataUrl"] = dataUrl
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
         forcastDataPlain = (urlopen(req).read()).decode('utf-8')
@@ -117,6 +118,9 @@ class MeteoSwissForecast:
 
         logging.debug("Parsing data...")
         self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(dataUrl)
+        # TODO add zip code and location name to data dict
+
+
         for day in range(0, self.days):
             # get day names
             dayNames.append(forecastData[day]["day_string"]) # name of the day
@@ -258,7 +262,7 @@ class MeteoSwissForecast:
             graphWidth = 1280
         if not graphHeight:
             graphHeight = 300
-        logging.debug("Graph size: %dy%d" % (graphWidth, graphHeight))
+        logging.debug("Graph size: %d x %d pixel" % (graphWidth, graphHeight))
         fig.set_size_inches(float(graphWidth)/fig.get_dpi(), float(graphHeight)/fig.get_dpi())
 
 
@@ -268,6 +272,9 @@ class MeteoSwissForecast:
         borders = 0.03
         plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.15)
 
+        bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
+        xPixelsPerDay = width / data["noOfDays"]
 
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
@@ -309,6 +316,8 @@ class MeteoSwissForecast:
 
         # Show when the model was last calculated
         rainYRange = plt.ylim()
+
+        # Show when the model was last calculated
         l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainYRange[1]])
         rainAxis.add_line(l)
 
@@ -366,10 +375,6 @@ class MeteoSwissForecast:
 
 
         # Print day names
-        bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
-        xPixelsPerDay = width / data["noOfDays"]
-
         for day in range(0, data["noOfDays"]):
             rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
 
@@ -394,6 +399,7 @@ class MeteoSwissForecast:
         rainAxis.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
         rainAxis.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
+        # TODO show location name in graph
 
         # Show Symbols above the graph
         for i in range(0, len(data["symbols"])):
@@ -439,7 +445,7 @@ if __name__ == '__main__':
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format)
     #pprint.pprint(forecastData)
-    meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
+    #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures)
 
