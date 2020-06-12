@@ -314,7 +314,7 @@ class MeteoSwissForecast:
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
         plt.ylim(0, rainScaleMax)
         #print(rainScaleMax)
-        rainAxis.locator_params(nbins=7)
+        rainAxis.locator_params(axis='y', nbins=7)
 
 
         # Rain color bar as y axis
