@@ -309,13 +309,15 @@ class MeteoSwissForecast:
             bottom = np.add(bottom, rainBars[i-1]).tolist()
             rainAxis.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
 
-        #rainAxis.set_ylabel('Rainfall', color=colors["rain-axis"])
         rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"], width=0, length=8)
-        plt.ylim(0, max(data["rainfall"]) + 1)
+        rainYRange = plt.ylim()
+        rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
+        plt.ylim(0, rainScaleMax)
+        #print(rainScaleMax)
+        rainAxis.locator_params(nbins=7)
 
 
         # Rain color bar as y axis
-        rainYRange = plt.ylim()
         plt.xlim(data["timestamps"][0], data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]))
         pixelToRainX = 1 / xPixelsPerDay * (data["timestamps"][23] - data["timestamps"][0])
         x = data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]) # end of x
@@ -323,19 +325,21 @@ class MeteoSwissForecast:
 
         for i in range(0, len(self.rainColorSteps)):
             y = self.rainColorSteps[i] - self.rainColorStepSizes[i]
-            if y >= rainYRange[1]:
+            if y > rainScaleMax:
                 break
-            h = min(rainYRange[1] - y, self.rainColorSteps[i] + self.rainColorStepSizes[i])
+            h = self.rainColorSteps[i] + self.rainColorStepSizes[i]
+            if y + h >= rainScaleMax: # reached top
+                h = rainScaleMax - y
             rainScaleBar = Rectangle((x, y), w, h, fc=self.rainColors[i], alpha=1)
             rainAxis.add_patch(rainScaleBar)
             rainScaleBar.set_clip_on(False)
 
-        rainScaleBorder = Rectangle((x, 0), w, rainYRange[1], fc="black", fill=False, alpha=1)
+        rainScaleBorder = Rectangle((x, 0), w, rainScaleMax, fc="black", fill=False, alpha=1)
         rainAxis.add_patch(rainScaleBorder)
         rainScaleBorder.set_clip_on(False)
 
         # Show when the model was last calculated
-        l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainYRange[1]])
+        l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainScaleMax])
         rainAxis.add_line(l)
 
 
