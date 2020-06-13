@@ -313,7 +313,6 @@ class MeteoSwissForecast:
         rainYRange = plt.ylim()
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
         plt.ylim(0, rainScaleMax)
-        #print(rainScaleMax)
         rainAxis.locator_params(axis='y', nbins=7)
 
 
@@ -358,7 +357,7 @@ class MeteoSwissForecast:
 
         # Make sure the temperature range is multiple of 5
         temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
-        temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5) * 5
+        temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5 + 1) * 5
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
 
