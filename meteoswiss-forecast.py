@@ -407,7 +407,7 @@ class MeteoSwissForecast:
 
         # Show Symbols above the graph
         for i in range(0, len(data["symbols"])):
-            symbolFile = "symbols/" + str(data["symbols"][i]) + ".png"
+            symbolFile = os.path.dirname(os.path.realpath(__file__)) + "/symbols/" + str(data["symbols"][i]) + ".png"
             if not os.path.isfile(symbolFile):
                 logging.warning("The symbol file %s seems to be missing. Please check the README.md!" % symbolFile)
                 continue
