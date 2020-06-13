@@ -248,7 +248,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False, minMaxTemperature=False):
+    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12):
         logging.debug("Creating graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -256,6 +256,11 @@ class MeteoSwissForecast:
             colors = self.colorsLightMode
 
         fig, rainAxis = plt.subplots()
+
+        # set font sizes
+        plt.rcParams.update({'font.size': fontSize}) # Temperature Y axis and day names
+        rainAxis.tick_params(axis='y', labelsize=fontSize) # Rain Y axis
+        plt.xticks(fontSize=fontSize) # Time axis
 
 
         if not graphWidth:
@@ -270,7 +275,7 @@ class MeteoSwissForecast:
         plt.margins(x=0)
         rainAxis.margins(x=0)
         borders = 0.03
-        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.15)
+        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.2)
 
         bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
@@ -284,6 +289,7 @@ class MeteoSwissForecast:
         # Time axis and ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
         rainAxis.tick_params(axis='x', colors=colors["x-axis"])
+
 
 
         # Rain (data gets splitted to stacked bars)
@@ -396,11 +402,11 @@ class MeteoSwissForecast:
 
         # Print day names
         for day in range(0, data["noOfDays"]):
-            rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -40), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
+            rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -53), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
 
 
         # Show y-axis units
-        rainAxis.annotate("mm/h", xy=(width + 20, height + 15), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
+        rainAxis.annotate("mm\n/h", xy=(width + 20, height + 10), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
         rainAxis.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
         # TODO show location name in graph
@@ -416,6 +422,8 @@ class MeteoSwissForecast:
             xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 28
             ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
             rainAxis.add_artist(ab)
+
+
 
         # Save the graph in a png image file
         logging.debug("Saving graph to %s" % outputFilename)
@@ -435,6 +443,7 @@ if __name__ == '__main__':
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels')
     parser.add_argument('--compact-time-format', action='store_true', help='Show only hours instead of Hours and Minutes')
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
+    parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
     parser.add_argument('--min-max-temperatures', action='store_true', help='Show min/max temperature per day')
 
     args = parser.parse_args()
@@ -451,5 +460,5 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size)
 
