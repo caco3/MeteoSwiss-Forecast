@@ -118,7 +118,7 @@ class MeteoSwissForecast:
 
         logging.debug("Parsing data...")
         self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(dataUrl)
-        # TODO add zip code and location name to data dict
+        ## TODO add zip code and location name to data dict
 
         try:
             locale.setlocale(locale.LC_ALL, localeAlias)
@@ -466,7 +466,7 @@ if __name__ == '__main__':
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format, localeAlias=args.locale)
     #pprint.pprint(forecastData)
-    meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
+    #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size)
 
