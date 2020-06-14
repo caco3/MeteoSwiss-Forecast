@@ -49,4 +49,6 @@ rm *.svg
 ```
 
 # Legal
-The scripts only uses publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
+The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
+
+The scripts are provided under the terms of the GPL V3.
