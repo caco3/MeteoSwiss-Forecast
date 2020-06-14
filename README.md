@@ -1,12 +1,44 @@
 # MeteoSwiss-Forecast
-Script to fetch the MeteoSwiss Weather Forecast data and generate a graph
+Script to fetch the MeteoSwiss Weather Forecast data and generate a graph out of it.
+
+The graph contains the rain and temperature forecast. later one is enhanced with the uncertainty band. Additionally, a blue marker indicates the last forecast model simulation.
+
+The graph is highly configurable, how ever in the default configuration it tries to adapt the style of the MeteoSwiss App.
+
+### Default
+`python3 meteoswiss-forecast.py -z 8001 -f myForecast.png`
+
+![MeteoSwiss Style](doc/default.png)
+
+### Enhancements
+Additionally, you can switch to a dark mode, change the time divisions, select the number of days and even mark the min/max temperature per day.
+
+#### Example 1
+`python3 meteoswiss-forecast.py -z 8001 -f myForecast.png --days-to-show 2 --time-division 3 --width 1200 --height 300 --min-max-temperature`
+
+![MeteoSwiss Style](doc/example1.png)
+
+#### Example 2
+`python3 meteoswiss-forecast.py -z 8001 -f myForecast.png --days-to-show 3 --time-division 2 --width 1200 --height 300 --min-max-temperature --dark-mode --locale de_DE.utf8 --compact-time-format`
+
+![MeteoSwiss Style](doc/example2.png)
+
+### Marking of Current time
+The repo contains an extra script to add a mark of the current time (red bar). One might want to update this every minute or so.
+Since the generation of the forecast is rater slow, one might want to only update the current time mark at a high frequency but only generate the forecast once every hour.
+
+`python3 mark-graphic.py -i myForecast.png -o myForecast-marked.png -x 52 -y 50 -w 295 -H 161`
+
+![MeteoSwiss Style](doc/forecast-marked.png)
 
 
 ## Preparations
+### Requirements
+Run `python3 -m pip install -r requirements.txt` to install all needed Python packages.
 
 ### Get Symbols
-The symbols used by MeteoSwiss are provided as SVG files. How ever we need them as PNG files, preferably with a transparent background.
-Due to copyright concerns, I do not want to provide the converted files here, instead, download and convert them yourself:
+MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
+Due to copyright concerns, I do not provide the converted files here, instead, download and convert them yourself:
 ```
 mkdir symbols
 cd symbols
@@ -15,3 +47,8 @@ for i in {100..135}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteo
 for f in *.svg; do convert -background transparent -resize 256x256 -density 500 $f ${f%.svg}.png; done
 rm *.svg
 ```
+
+# Legal
+The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
+
+The scripts are provided under the terms of the GPL V3.
