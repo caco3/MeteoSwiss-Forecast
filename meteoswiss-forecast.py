@@ -275,7 +275,8 @@ class MeteoSwissForecast:
         plt.margins(x=0)
         rainAxis.margins(x=0)
         borders = 0.03
-        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.2)
+        #plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.2)
+        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.12, bottom=borders+0.17)
 
         bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
@@ -362,8 +363,11 @@ class MeteoSwissForecast:
 
 
         # Make sure the temperature range is multiple of 5
-        temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
-        temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5 + 1) * 5
+        print(min(data["temperatureVarianceMin"]), max(data["temperatureVarianceMax"]))
+        #temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
+        temperatureScaleMin = min(data["temperatureVarianceMin"]) - 1
+        #temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5 + 1) * 5
+        temperatureScaleMax = max(data["temperatureVarianceMax"]) + 1
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
 
@@ -393,21 +397,21 @@ class MeteoSwissForecast:
                         minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
 
                 # TODO the y offset should be in pixel and not °C!
-                bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-                temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + 1),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                bbox_props = dict(boxstyle="round", fc="w", ec="1", alpha=0.7, pad=0.1)
+                temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] - 3),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
-                temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] -1.5),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] + 3),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
 
         # Print day names
         for day in range(0, data["noOfDays"]):
-            rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -53), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
+            rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -45), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
 
 
         # Show y-axis units
-        rainAxis.annotate("mm\n/h", xy=(width + 20, height + 10), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
-        rainAxis.annotate("°C", xy=(-20, height + 15), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
+        rainAxis.annotate("mm\n/h", xy=(width + 20, height - 3), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
+        rainAxis.annotate("°C", xy=(-20, height + 10), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
         # TODO show location name in graph
 
@@ -418,8 +422,8 @@ class MeteoSwissForecast:
                 logging.warning("The symbol file %s seems to be missing. Please check the README.md!" % symbolFile)
                 continue
             symbolImage = mpimg.imread(symbolFile)
-            imagebox = OffsetImage(symbolImage, zoom=0.1)
-            xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 28
+            imagebox = OffsetImage(symbolImage, zoom=0.08)
+            xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 15
             ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
             rainAxis.add_artist(ab)
 
