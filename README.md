@@ -37,7 +37,7 @@ Since the generation of the forecast is rater slow, one might want to only updat
 Run `python3 -m pip install -r requirements.txt` to install all needed Python packages.
 
 ### Get Symbols
-The symbols used by MeteoSwiss are provided as SVG files. How ever we need them as PNG files, preferably with a transparent background.
+MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
 Due to copyright concerns, I do not provide the converted files here, instead, download and convert them yourself:
 ```
 mkdir symbols
@@ -47,3 +47,6 @@ for i in {100..135}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteo
 for f in *.svg; do convert -background transparent -resize 256x256 -density 500 $f ${f%.svg}.png; done
 rm *.svg
 ```
+
+# Legal
+The scripts only uses publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
