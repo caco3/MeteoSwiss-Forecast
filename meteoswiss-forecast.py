@@ -253,7 +253,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, useExtendedStyle=False, timeDivisions=3, graphWidth=1280, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12):
         logging.debug("Creating graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -443,11 +443,10 @@ if __name__ == '__main__':
     parser.add_argument('-v', action='store_true', help='Verbose output')
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the location to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written')
-    parser.add_argument('--extended-style', action='store_true', help='Use extended style instead of MeteoSwiss App mode')
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
-    parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel')
-    parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels')
+    parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
+    parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels', default=6)
     parser.add_argument('--compact-time-format', action='store_true', help='Show only hours instead of Hours and Minutes')
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
@@ -468,5 +467,5 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size)
 
