@@ -120,16 +120,15 @@ class MeteoSwissForecast:
         self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(dataUrl)
         # TODO add zip code and location name to data dict
 
-        #try:
-            #locale.setlocale(locale.LC_ALL, localeAlias)
-        #except Exception as e:
-            #logging.warning("Unable to uses locale \"%s\": %s, call 'locale -e' to get a list of possible options" % (localeAlias, e))
+        try:
+            locale.setlocale(locale.LC_ALL, localeAlias)
+        except Exception as e:
+            logging.warning("Unable to uses locale \"%s\": %s" % (localeAlias, e))
 
         for day in range(0, self.days):
             # get day names
-            dayNames.append(forecastData[day]["day_string"]) # name of the day
-            #timestamp = int(forecastData[day]["min_date"]) / 1000 + self.utcOffset * 3600
-            #dayNames.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%A, %-d. %B')) # name of the day
+            timestamp = int(forecastData[day]["min_date"]) / 1000 + self.utcOffset * 3600
+            dayNames.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%A, %-d. %B')) # name of the day
 
             # get timestamps (the same for all data)
             for hour in range(0, 24):
