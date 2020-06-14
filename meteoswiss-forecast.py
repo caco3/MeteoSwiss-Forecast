@@ -373,6 +373,7 @@ class MeteoSwissForecast:
         #temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5 + 1) * 5
         temperatureScaleMax = max(data["temperatureVarianceMax"]) + 1
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
+        temperatureAxis.locator_params(axis='y', nbins=6)
 
 
         # Temperature variance
@@ -381,7 +382,6 @@ class MeteoSwissForecast:
 
         temperatureVarianceAxis.fill_between(data["timestamps"], data["temperatureVarianceMin"], data["temperatureVarianceMax"], facecolor=self.temperatureColor, alpha=0.2)
         temperatureVarianceAxis.tick_params(axis='y', labelcolor=self.temperatureColor)
-
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
 
