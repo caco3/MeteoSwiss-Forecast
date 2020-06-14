@@ -3,6 +3,7 @@ import json
 import pprint
 import time
 import datetime
+import locale
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.patches import Circle, Rectangle
@@ -89,11 +90,10 @@ class MeteoSwissForecast:
         return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple())) + 2*self.utcOffset * 3600
 
 
-
     """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
-    def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False):
+    def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False, localeAlias="en_US.utf8"):
         self.data["dataUrl"] = dataUrl
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
@@ -120,10 +120,16 @@ class MeteoSwissForecast:
         self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(dataUrl)
         # TODO add zip code and location name to data dict
 
+        try:
+            locale.setlocale(locale.LC_ALL, localeAlias)
+        except Exception as e:
+            logging.warning("Unable to uses locale \"%s\": %s" % (localeAlias, e))
 
         for day in range(0, self.days):
             # get day names
-            dayNames.append(forecastData[day]["day_string"]) # name of the day
+            #dayNames.append(forecastData[day]["day_string"]) # name of the day
+            timestamp = int(forecastData[day]["min_date"]) / 1000 + self.utcOffset * 3600
+            dayNames.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%A, %-d. %B')) # name of the day
 
             # get timestamps (the same for all data)
             for hour in range(0, 24):
@@ -233,7 +239,7 @@ class MeteoSwissForecast:
     """
     def exportForecastData(self, forecastData, outputFilename):
         with open(outputFilename, 'w') as outfile:
-            json.dump(forecastData, outfile)
+            json.dump(forecastData, outfile, indent=2)
 
 
     """
@@ -290,7 +296,6 @@ class MeteoSwissForecast:
         # Time axis and ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
         rainAxis.tick_params(axis='x', colors=colors["x-axis"])
-
 
 
         # Rain (data gets splitted to stacked bars)
@@ -362,8 +367,7 @@ class MeteoSwissForecast:
         rainAxis.yaxis.tick_right()
 
 
-        # Make sure the temperature range is multiple of 5
-        print(min(data["temperatureVarianceMin"]), max(data["temperatureVarianceMax"]))
+        # Make sure the temperature scaling has a gap of 1 °C
         #temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
         temperatureScaleMin = min(data["temperatureVarianceMin"]) - 1
         #temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5 + 1) * 5
@@ -449,6 +453,7 @@ if __name__ == '__main__':
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
     parser.add_argument('--min-max-temperatures', action='store_true', help='Show min/max temperature per day')
+    parser.add_argument('--locale', action='store', help='Used localization of the date, eg. en_US.utf8', default="en_US.utf8")
 
     args = parser.parse_args()
 
@@ -460,9 +465,9 @@ if __name__ == '__main__':
 
     meteoSwissForecast = MeteoSwissForecast()
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
-    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format)
+    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format, localeAlias=args.locale)
     #pprint.pprint(forecastData)
-    #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
+    meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, useExtendedStyle=args.extended_style, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size)
 
