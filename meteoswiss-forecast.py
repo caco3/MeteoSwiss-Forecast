@@ -254,7 +254,7 @@ class MeteoSwissForecast:
     Generates the graphic containing the forecast
     """
     def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12):
-        logging.debug("Creating graph...")
+        logging.debug("Initializing graph...")
         if darkMode:
             colors = self.colorsDarkMode
         else:
@@ -280,6 +280,7 @@ class MeteoSwissForecast:
         plt.margins(x=0)
         rainAxis.margins(x=0)
         borders = 0.03
+        # TODO use absolute pixel
         #plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.2)
         plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.12, bottom=borders+0.17)
 
@@ -298,6 +299,7 @@ class MeteoSwissForecast:
 
 
         # Rain (data gets splitted to stacked bars)
+        logging.debug("Creating rain plot...")
         rainBars = [0] * len(self.rainColorSteps)
 
         for i in range(0, len(self.rainColorSteps)):
@@ -354,6 +356,7 @@ class MeteoSwissForecast:
 
 
         # Temperature
+        logging.debug("Creating temerature plot...")
         temperatureAxis = rainAxis.twinx()  # instantiate a second axes that shares the same x-axis
         temperatureAxis.plot(data["timestamps"], data["temperature"], label = "temperature", color=self.temperatureColor, linewidth=4)
         #temperatureAxis.set_ylabel('Temperature', color=self.temperatureColor)
@@ -384,6 +387,7 @@ class MeteoSwissForecast:
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
 
 
+        logging.debug("Adding various additional information to the graph...")
         # Mark min/max temperature per day
         if minMaxTemperature:
             da = DrawingArea(2, 2, 0, 0)
