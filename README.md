@@ -43,10 +43,17 @@ Due to copyright concerns, I do not provide the converted files here, instead, d
 mkdir symbols
 cd symbols
 for i in {1..35}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
-for i in {100..135}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
+for i in {101..135}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
 for f in *.svg; do convert -background transparent -resize 256x256 -density 500 $f ${f%.svg}.png; done
 rm *.svg
 ```
+
+
+# Run it in a Docker Container
+1. Adjust the parameters in `Dockerfile`
+1. Build the docker image with `docker build -t meteoswiss-forecast .`.
+1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast-test01 meteoswiss-forecast`
+
 
 # Legal
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
