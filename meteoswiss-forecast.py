@@ -93,7 +93,7 @@ class MeteoSwissForecast:
     """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
-    def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False, localeAlias="en_US.utf8"):
+    def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False, dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
         self.data["dataUrl"] = dataUrl
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
@@ -128,7 +128,7 @@ class MeteoSwissForecast:
         for day in range(0, self.days):
             # get day names
             timestamp = int(forecastData[day]["min_date"]) / 1000 + self.utcOffset * 3600
-            dayNames.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%A, %-d. %B')) # name of the day
+            dayNames.append(datetime.datetime.utcfromtimestamp(timestamp).strftime(dateFormat)) # name of the day
 
             # get timestamps (the same for all data)
             for hour in range(0, 24):
@@ -457,6 +457,7 @@ if __name__ == '__main__':
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
     parser.add_argument('--min-max-temperatures', action='store_true', help='Show min/max temperature per day')
     parser.add_argument('--locale', action='store', help='Used localization of the date, eg. en_US.utf8', default="en_US.utf8")
+    parser.add_argument('--date-format', action='store', help='Format of the dates, eg. \"%%A, %%-d. %%B\", see https://strftime.org/ for details', default="%A, %-d. %B")
 
     args = parser.parse_args()
 
@@ -469,7 +470,7 @@ if __name__ == '__main__':
 
     meteoSwissForecast = MeteoSwissForecast()
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
-    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format, localeAlias=args.locale)
+    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format, dateFormat=args.date_format, localeAlias=args.locale)
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
