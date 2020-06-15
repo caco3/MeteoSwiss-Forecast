@@ -277,12 +277,13 @@ class MeteoSwissForecast:
 
 
         # Plot dimension and borders
+        bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
+
         plt.margins(x=0)
         rainAxis.margins(x=0)
-        borders = 0.03
-        # TODO use absolute pixel
-        #plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.2, bottom=borders+0.2)
-        plt.subplots_adjust(left=borders+0.01, right=1-borders-0.01, top=1-borders-0.12, bottom=borders+0.17)
+
+        plt.subplots_adjust(left=40/width, right=1-40/width, top=1-35/height, bottom=40/height)
 
         bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel

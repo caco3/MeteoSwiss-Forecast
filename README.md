@@ -54,6 +54,8 @@ rm *.svg
 1. Build the docker image with `docker build -t meteoswiss-forecast .`.
 1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast-test01 meteoswiss-forecast`
 
+:exclamation: Within the docker container, the UTC offset is always 0!
+
 
 # Legal
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
