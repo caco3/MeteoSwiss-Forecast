@@ -93,7 +93,7 @@ class MeteoSwissForecast:
     """
     Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
     """
-    def collectData(self, dataUrl=None, daysToUse=7, compactTimeFormat=False, dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
+    def collectData(self, dataUrl=None, daysToUse=7, timeFormat="%H:%M", dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
         self.data["dataUrl"] = dataUrl
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
@@ -138,10 +138,7 @@ class MeteoSwissForecast:
 
         dayIndex = 0
         for timestamp in timestamps:
-            if compactTimeFormat:
-                formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%-H'))
-            else:
-                formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime('%H:%M'))
+            formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime(timeFormat))
         rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall", 1)
         sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine", 1)
         temperature = self.dataExtractorNormal(forecastData, self.days, "temperature", 1)
@@ -452,12 +449,12 @@ if __name__ == '__main__':
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels', default=6)
-    parser.add_argument('--compact-time-format', action='store_true', help='Show only hours instead of Hours and Minutes')
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
     parser.add_argument('--min-max-temperatures', action='store_true', help='Show min/max temperature per day')
     parser.add_argument('--locale', action='store', help='Used localization of the date, eg. en_US.utf8', default="en_US.utf8")
     parser.add_argument('--date-format', action='store', help='Format of the dates, eg. \"%%A, %%-d. %%B\", see https://strftime.org/ for details', default="%A, %-d. %B")
+    parser.add_argument('--time-format', action='store', help='Format of the times, eg. \"%%H:%%M\", see https://strftime.org/ for details', default="%H:%M")
 
     args = parser.parse_args()
 
@@ -470,7 +467,7 @@ if __name__ == '__main__':
 
     meteoSwissForecast = MeteoSwissForecast()
     dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
-    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, compactTimeFormat=args.compact_time_format, dateFormat=args.date_format, localeAlias=args.locale)
+    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
