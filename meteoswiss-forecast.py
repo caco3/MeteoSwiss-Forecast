@@ -415,7 +415,7 @@ class MeteoSwissForecast:
 
 
         # Show y-axis units
-        rainAxis.annotate("mm\n/h", xy=(width + 20, height - 3), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
+        rainAxis.annotate("mm\n/h", linespacing = 0.8, xy=(width + 20, height + 5), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
         rainAxis.annotate("°C", xy=(-20, height + 10), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
         # TODO show location name in graph
