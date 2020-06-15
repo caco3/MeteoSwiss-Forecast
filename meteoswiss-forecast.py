@@ -250,7 +250,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12, symbolSize=1.0, symbolDivision=1):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1):
         logging.debug("Initializing graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -427,7 +427,7 @@ class MeteoSwissForecast:
                 logging.warning("The symbol file %s seems to be missing. Please check the README.md!" % symbolFile)
                 continue
             symbolImage = mpimg.imread(symbolFile)
-            imagebox = OffsetImage(symbolImage, zoom=symbolSize / 1.41 * 0.15)
+            imagebox = OffsetImage(symbolImage, zoom=symbolZoom / 1.41 * 0.15)
             xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 15
             ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
             rainAxis.add_artist(ab)
@@ -454,7 +454,7 @@ if __name__ == '__main__':
     parser.add_argument('--locale', action='store', help='Used localization of the date, eg. en_US.utf8', default="en_US.utf8")
     parser.add_argument('--date-format', action='store', help='Format of the dates, eg. \"%%A, %%-d. %%B\", see https://strftime.org/ for details', default="%A, %-d. %B")
     parser.add_argument('--time-format', action='store', help='Format of the times, eg. \"%%H:%%M\", see https://strftime.org/ for details', default="%H:%M")
-    parser.add_argument('--symbol-size', action='store', type=float, help='scaling of the symbols', default=1.0)
+    parser.add_argument('--symbol-zoom', action='store', type=float, help='scaling of the symbols', default=1.0)
     parser.add_argument('--symbol-divisions', action='store', type=int, help='Only draw every x symbol (1 equals every 3 hours)', default=1)
 
     args = parser.parse_args()
@@ -472,5 +472,5 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolSize=args.symbol_size, symbolDivision=args.symbol_divisions)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions)
 
