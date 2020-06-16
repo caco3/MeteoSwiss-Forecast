@@ -9,6 +9,7 @@ import matplotlib.image as mpimg
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
+import matplotlib.patheffects as path_effects
 import numpy as np
 import math
 import logging
@@ -53,7 +54,7 @@ class MeteoSwissForecast:
         self.zipCode = zipCode
 
         logging.debug("Using data for location with zip code %d" % self.zipCode)
-        self.location = self.getLocation()
+        self.cityName = self.getCityName()
 
         # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
         ts = time.time()
@@ -85,10 +86,10 @@ class MeteoSwissForecast:
 
 
     """
-    Fetches the meta data file and extracts the location
+    Fetches the meta data file and extracts the city name
     Example location URL: https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/ajax/location/800100.json
     """
-    def getLocation(self):
+    def getCityName(self):
         locationUrl = self.domain + self.locationUrlPrefix + str(self.zipCode) + "00" + self.locationUrlSuffix
         logging.debug("Downloading data from %s..." % locationUrl)
         req = Request(locationUrl, headers={'User-Agent': 'Mozilla/5.0'})
@@ -271,7 +272,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=None):
         logging.debug("Initializing graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -439,7 +440,6 @@ class MeteoSwissForecast:
         rainAxis.annotate("mm\n/h", linespacing = 0.8, xy=(width + 20, height + 5), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
         rainAxis.annotate("°C", xy=(-20, height + 10), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
-        # TODO show location name in graph
 
         # Show Symbols above the graph
         for i in range(0, len(data["symbols"]), symbolDivision):
@@ -454,6 +454,14 @@ class MeteoSwissForecast:
             rainAxis.add_artist(ab)
 
 
+
+        # Show city name in graph
+        if showCityName:
+            logging.debug("Adding city name to plot...")
+            text = fig.text(1-7/width, 1-20/height, self.cityName, color='gray', ha='right', transform=rainAxis.transAxes)
+            text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='white'), path_effects.Normal()])
+
+
         # Save the graph in a png image file
         logging.debug("Saving graph to %s" % outputFilename)
         plt.savefig(outputFilename, facecolor=colors["background"])
@@ -463,7 +471,7 @@ class MeteoSwissForecast:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to fetch the MeteoSwiss Weather Forecast data and generate a graph')
     parser.add_argument('-v', action='store_true', help='Verbose output')
-    parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the location to be represented')
+    parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the city to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written')
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
@@ -477,6 +485,7 @@ if __name__ == '__main__':
     parser.add_argument('--time-format', action='store', help='Format of the times, eg. \"%%H:%%M\", see https://strftime.org/ for details', default="%H:%M")
     parser.add_argument('--symbol-zoom', action='store', type=float, help='scaling of the symbols', default=1.0)
     parser.add_argument('--symbol-divisions', action='store', type=int, help='Only draw every x symbol (1 equals every 3 hours)', default=1)
+    parser.add_argument('--city-name', action='store_true', help='Show the name of the city')
 
     args = parser.parse_args()
 
@@ -493,5 +502,5 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name)
 
