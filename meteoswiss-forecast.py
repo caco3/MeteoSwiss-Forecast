@@ -389,13 +389,14 @@ class MeteoSwissForecast:
         rainAxis.yaxis.tick_right()
 
 
-        # Make sure the temperature scaling has a gap of 1 °C
-        #temperatureScaleMin = math.floor(float(min(data["temperatureVarianceMin"])) / 5 - 1) * 5
-        temperatureScaleMin = min(data["temperatureVarianceMin"]) - 1
-        #temperatureScaleMax = math.ceil(float(max(data["temperatureVarianceMax"])) / 5 + 1) * 5
-        temperatureScaleMax = max(data["temperatureVarianceMax"]) + 1
+        # Make sure the temperature scaling has a gap of 45 pixel, so we can fit the labels
+        interimPixelToTemperature = (max(data["temperature"]) - min(data["temperature"])) / height
+        temperatureScaleMin = min(data["temperature"]) - float(45) * interimPixelToTemperature
+        temperatureScaleMax = max(data["temperature"]) + float(45) * interimPixelToTemperature
+
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
         temperatureAxis.locator_params(axis='y', nbins=6)
+        pixelToTemperature = (temperatureScaleMax - temperatureScaleMin) / height
 
 
         # Temperature variance
@@ -422,13 +423,19 @@ class MeteoSwissForecast:
                     if data["temperature"][day * 24 + h] < minTemperatureOfDay["data"]:
                         minTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
                         minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
-
-                # TODO the y offset should be in pixel and not °C!
-                bbox_props = dict(boxstyle="round", fc="w", ec="1", alpha=0.7, pad=0.1)
-                temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C", xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] - 3),  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
+                # Circles
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
-                temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C", xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] + 3),  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold', bbox=bbox_props)
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+
+                # Labels
+                temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C",
+                                                 xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + float(8) * pixelToTemperature),
+                                                 xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold',
+                                                 path_effects=[path_effects.withStroke(linewidth=5, foreground="w")])
+                temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C",
+                                                 xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] - float(12) * pixelToTemperature),
+                                                 xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold',
+                                                 path_effects=[path_effects.withStroke(linewidth=5, foreground="w")])
 
 
         # Print day names
