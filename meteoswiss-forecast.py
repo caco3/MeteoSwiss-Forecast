@@ -428,6 +428,7 @@ class MeteoSwissForecast:
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
                 # Labels
+                # TODO make sure the labels are not standing out of the plot on the sides
                 temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C",
                                                  xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + float(8) * pixelToTemperature),
                                                  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold',
@@ -463,6 +464,7 @@ class MeteoSwissForecast:
 
 
         # Show city name in graph
+        # TODO find a way to show the label in the background
         if showCityName:
             logging.debug("Adding city name to plot...")
             text = fig.text(1-7/width, 1-20/height, self.cityName, color='gray', ha='right', transform=rainAxis.transAxes)
