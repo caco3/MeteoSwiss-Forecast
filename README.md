@@ -14,7 +14,7 @@ The graph is highly configurable, how ever in the default configuration it tries
 Additionally, you can switch to a dark mode, change the time divisions, select the number of days and even mark the min/max temperature per day.
 
 #### Example 1
-`python3 meteoswiss-forecast.py -z 8001 -f myForecast.png --days-to-show 2 --time-division 3 --width 1200 --height 300 --min-max-temperature`
+`python3 meteoswiss-forecast.py -z 6986 -f myForecast.png --days-to-show 3 --width 800 --symbol-division 2 --min-max-temperature`
 
 ![MeteoSwiss Style](doc/example1.png)
 
