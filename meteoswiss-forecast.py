@@ -27,7 +27,10 @@ class MeteoSwissForecast:
 
     dataUrlPrefix = "/product/output/forecast-chart/version__"
     dataUrlSuffix = ".json"
-    
+
+    locationUrlPrefix = "/etc/designs/meteoswiss/ajax/location/"
+    locationUrlSuffix = ".json"
+
     symbolsUrlPrefix = "/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/"
     symbolsUrlSuffix = ".svg"
 
@@ -46,7 +49,12 @@ class MeteoSwissForecast:
     days = 0
     data = {}
 
-    def __init__(self):
+    def __init__(self, zipCode):
+        self.zipCode = zipCode
+
+        logging.debug("Using data for location with zip code %d" % self.zipCode)
+        self.location = self.getLocation()
+
         # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
         ts = time.time()
         utcOffset = (datetime.datetime.fromtimestamp(ts) -
@@ -63,10 +71,7 @@ class MeteoSwissForecast:
     The 1122 is the time the forecast model got run by Meteo Swiss
     Since we do not know when the last forecast model got run, we have to parse the Meteo Swiss index page and take it from there.
     """
-    def getDataUrl(self, zipCode):
-        self.zipCode = zipCode
-        logging.debug("Using data for location with zip code %d" % self.zipCode)
-
+    def getDataUrl(self):
         req = Request(self.domain + "/" + self.indexPage, headers={'User-Agent': 'Mozilla/5.0'})
         indexPageContent = str(urlopen(req).read())
 
@@ -77,6 +82,22 @@ class MeteoSwissForecast:
 
         logging.debug("The data URL is: %s" % dataUrl)
         return dataUrl
+
+
+    """
+    Fetches the meta data file and extracts the location
+    Example location URL: https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/ajax/location/800100.json
+    """
+    def getLocation(self):
+        locationUrl = self.domain + self.locationUrlPrefix + str(self.zipCode) + "00" + self.locationUrlSuffix
+        logging.debug("Downloading data from %s..." % locationUrl)
+        req = Request(locationUrl, headers={'User-Agent': 'Mozilla/5.0'})
+        locationDataPlain = (urlopen(req).read()).decode('utf-8')
+        logging.debug("Download completed")
+        locationData = json.loads(locationDataPlain)
+
+        logging.debug("The location is: %s" % locationData["city_name"])
+        return locationData["city_name"]
 
 
     """
@@ -466,8 +487,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logLevel)
     logging.getLogger("matplotlib").setLevel(logging.WARNING) # hiding the debug messages from the matplotlib
 
-    meteoSwissForecast = MeteoSwissForecast()
-    dataUrl = meteoSwissForecast.getDataUrl(args.zip_code)
+    meteoSwissForecast = MeteoSwissForecast(args.zip_code)
+    dataUrl = meteoSwissForecast.getDataUrl()
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
