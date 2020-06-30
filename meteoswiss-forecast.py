@@ -10,6 +10,7 @@ from matplotlib.patches import Circle, Rectangle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
 import matplotlib.patheffects as path_effects
+from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import math
 import logging
@@ -347,7 +348,8 @@ class MeteoSwissForecast:
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
         plt.ylim(0, rainScaleMax)
         rainAxis.locator_params(axis='y', nbins=7)
-
+        # TODO find a better way than rounding 
+        rainAxis.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
 
         # Rain color bar as y axis
         plt.xlim(data["timestamps"][0], data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]))
@@ -396,6 +398,7 @@ class MeteoSwissForecast:
 
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
         temperatureAxis.locator_params(axis='y', nbins=6)
+        temperatureAxis.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
         pixelToTemperature = (temperatureScaleMax - temperatureScaleMin) / height
 
 
@@ -432,11 +435,11 @@ class MeteoSwissForecast:
                 temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C",
                                                  xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + float(8) * pixelToTemperature),
                                                  xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold',
-                                                 path_effects=[path_effects.withStroke(linewidth=5, foreground="w")])
+                                                 path_effects=[path_effects.withStroke(linewidth=3, foreground="w")])
                 temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C",
                                                  xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] - float(12) * pixelToTemperature),
                                                  xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold',
-                                                 path_effects=[path_effects.withStroke(linewidth=5, foreground="w")])
+                                                 path_effects=[path_effects.withStroke(linewidth=3, foreground="w")])
 
 
         # Print day names
