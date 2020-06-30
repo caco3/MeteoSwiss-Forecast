@@ -273,7 +273,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=None):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=None):
         logging.debug("Initializing graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -317,7 +317,6 @@ class MeteoSwissForecast:
         # Time axis and ticks
         plt.xticks(data["timestamps"][::timeDivisions], data["formatedTime"][::timeDivisions])
         rainAxis.tick_params(axis='x', colors=colors["x-axis"])
-
 
         # Rain (data gets splitted to stacked bars)
         logging.debug("Creating rain plot...")
@@ -371,6 +370,20 @@ class MeteoSwissForecast:
         rainScaleBorder = Rectangle((x, 0), w, rainScaleMax, fc="black", fill=False, alpha=1)
         rainAxis.add_patch(rainScaleBorder)
         rainScaleBorder.set_clip_on(False)
+
+
+        # Rain variance
+        if rainVariance:
+            rainfallVarianceAxis = rainAxis.twinx()  # instantiate a second axes that shares the same x-axis
+            rainfallVarianceAxis.axes.yaxis.set_visible(False)
+
+            timestampsCentered = [i + 1500 for i in data["timestamps"]]
+            rainfallVarianceMin = np.subtract(np.array(data["rainfall"]), np.array(data["rainfallVarianceMin"]))
+            rainfallVarianceMax = np.subtract(np.array(data["rainfallVarianceMax"]), np.array(data["rainfall"]))
+            rainfallVarianceAxis.errorbar(timestampsCentered, data["rainfall"], yerr=[rainfallVarianceMin, rainfallVarianceMax],
+                    fmt="none", elinewidth=1, alpha=0.5, ecolor='black', capsize=3)
+            plt.ylim(0, rainScaleMax)
+
 
         # Show when the model was last calculated
         l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainScaleMax])
@@ -492,6 +505,7 @@ if __name__ == '__main__':
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
     parser.add_argument('--min-max-temperatures', action='store_true', help='Show min/max temperature per day')
+    parser.add_argument('--rain-variance', action='store_true', help='Show rain variance')
     parser.add_argument('--locale', action='store', help='Used localization of the date, eg. en_US.utf8', default="en_US.utf8")
     parser.add_argument('--date-format', action='store', help='Format of the dates, eg. \"%%A, %%-d. %%B\", see https://strftime.org/ for details', default="%A, %-d. %B")
     parser.add_argument('--time-format', action='store', help='Format of the times, eg. \"%%H:%%M\", see https://strftime.org/ for details', default="%H:%M")
@@ -514,5 +528,5 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name)
 
