@@ -24,7 +24,7 @@ import json
 
 class MeteoSwissForecast:
     # Constants
-    domain = "https://www.meteoschweiz.admin.ch"
+    domain = "http://www.meteoschweiz.admin.ch"
     indexPage = "home.html?tab=overview"
 
     dataUrlPrefix = "/product/output/forecast-chart/version__"
@@ -74,7 +74,9 @@ class MeteoSwissForecast:
     Since we do not know when the last forecast model got run, we have to parse the Meteo Swiss index page and take it from there.
     """
     def getDataUrl(self):
-        req = Request(self.domain + "/" + self.indexPage, headers={'User-Agent': 'Mozilla/5.0'})
+        indexUrl = self.domain + "/" + self.indexPage
+        logging.debug("The index URL is: %s" % indexUrl)
+        req = Request(indexUrl, headers={'User-Agent': 'Mozilla/5.0'})
         indexPageContent = str(urlopen(req).read())
 
         dataUrlStartPosition = indexPageContent.find(self.dataUrlPrefix)
