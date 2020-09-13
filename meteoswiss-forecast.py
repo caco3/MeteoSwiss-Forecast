@@ -499,7 +499,6 @@ class MeteoSwissForecast:
             metaData = {}
             metaData['city'] = self.cityName
             metaData['model'] = self.data["modelCalculationTimestamp"]
-            print(metaData)
             with open(writeMetaData, 'w') as metaFile:
                 json.dump(metaData, metaFile)
 
