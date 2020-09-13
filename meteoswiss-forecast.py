@@ -495,7 +495,7 @@ class MeteoSwissForecast:
 
         # Write Meta Data
         if writeMetaData:
-            logging.debug("Saving meta Data to %s" % writeMetaData)
+            logging.debug("Saving Meta Data to %s" % writeMetaData)
             metaData = {}
             metaData['city'] = self.cityName
             metaData['model'] = self.data["modelCalculationTimestamp"]
