@@ -105,14 +105,15 @@ class MeteoSwissForecast:
 
 
     """
-    Extracts the timestamp of when the model was calculated by meteoSwiss
+    Extracts the timestamp (in UTC) of when the model was calculated by meteoSwiss
     """
     def getModelCalculationTimestamp(self, dataUrl):
         arr = dataUrl.split("__")
         # Example of arr[1]: 20200609_0913/de/862000.json
+        # Note that the time is in UTC!
         arr = arr[1].split("/")
         # Example of arr[0]: 20200609_0913
-        return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple())) + 2*self.utcOffset * 3600
+        return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple()) + self.utcOffset * 3600)
 
 
     """
@@ -388,7 +389,8 @@ class MeteoSwissForecast:
 
 
         # Show when the model was last calculated
-        l = mlines.Line2D([data["modelCalculationTimestamp"], data["modelCalculationTimestamp"]], [rainYRange[0], rainScaleMax])
+        timestampLocal = data["modelCalculationTimestamp"] + self.utcOffset * 3600
+        l = mlines.Line2D([timestampLocal, timestampLocal], [rainYRange[0], rainScaleMax])
         rainAxis.add_line(l)
 
 
@@ -498,7 +500,7 @@ class MeteoSwissForecast:
             logging.debug("Saving Meta Data to %s" % writeMetaData)
             metaData = {}
             metaData['city'] = self.cityName
-            metaData['model'] = self.data["modelCalculationTimestamp"]
+            metaData['modelTimestamp'] = self.data["modelCalculationTimestamp"] # Seconds in UTC
             with open(writeMetaData, 'w') as metaFile:
                 json.dump(metaData, metaFile)
 
