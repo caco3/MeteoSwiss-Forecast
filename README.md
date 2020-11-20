@@ -52,7 +52,8 @@ rm *.svg
 # Run it in a Docker Container
 1. Adjust the parameters in `Dockerfile`
 1. Build the docker image with `docker build -t meteoswiss-forecast .`.
-1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast-test01 meteoswiss-forecast`
+1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast-test01 -p 8080:8080 meteoswiss-forecast`
+1. Call it in a webbrowser: `http://localhost:8080`
 
 :exclamation: Within the docker container, the UTC offset is always 0!
 
