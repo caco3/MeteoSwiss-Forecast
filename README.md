@@ -38,7 +38,7 @@ Run `python3 -m pip install -r requirements.txt` to install all needed Python pa
 
 ### Get Symbols
 MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
-Due to copyright concerns, I do not provide the converted files here, instead, download and convert them yourself:
+The folder `symbols` provides the already converted symbols. Alternatively you can generate them yourself:
 ```
 mkdir symbols
 cd symbols
