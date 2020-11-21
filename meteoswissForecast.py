@@ -311,6 +311,12 @@ class MeteoSwissForecast:
         bbox = rainAxis.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         width, height = bbox.width * fig.dpi, bbox.height * fig.dpi # plot size in pixel
         xPixelsPerDay = width / data["noOfDays"]
+        
+        # Dimensions of the axis in pixel
+        firstDayX = math.ceil(bbox.x0 * fig.dpi)
+        firstDayY = math.ceil(bbox.y0 * fig.dpi)
+        dayWidth = math.floor((bbox.x1 - bbox.x0) * fig.dpi) / data["noOfDays"]
+        dayHeight = math.floor((bbox.y1 - bbox.y0) * fig.dpi)   
 
         # Show gray background on every 2nd day
         for day in range(0, data["noOfDays"], 2):
@@ -500,10 +506,15 @@ class MeteoSwissForecast:
             logging.debug("Saving Meta Data to %s" % writeMetaData)
             metaData = {}
             metaData['city'] = self.cityName
+            metaData['imageHeight'] = graphHeight
+            metaData['imageWidth'] = graphWidth
+            metaData['firstDayX'] = firstDayX
+            metaData['firstDayY'] = firstDayY
+            metaData['dayWidth'] = dayWidth
+            metaData['dayHeight'] = dayHeight
             metaData['modelTimestamp'] = self.data["modelCalculationTimestamp"] # Seconds in UTC
             with open(writeMetaData, 'w') as metaFile:
                 json.dump(metaData, metaFile)
-
 
 
 if __name__ == '__main__':
