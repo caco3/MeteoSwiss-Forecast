@@ -2,17 +2,14 @@
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from urllib.parse import urlparse, parse_qs
 from meteoswissForecast import MeteoSwissForecast
+from markGraphic import markGraphic
 import logging
-#import pprint
 import os
-
-
-PORT_NUMBER = 8080
+import json
 
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
-
 
 
 # This class will handle any incoming request from
@@ -25,33 +22,40 @@ class myHandler(BaseHTTPRequestHandler):
         parsed_url = urlparse(self.path)
         query = parse_qs(parsed_url.query)
         
-        print("File: %s" % parsed_url.path)
-        print("Query: %s" % query)
+        print("File: %s, query: %s" % (parsed_url.path, query), flush=True)
         
-        if parsed_url.path == "/generate":
+        if parsed_url.path == "/generate-forecast":
             self.generate(query)
-        elif parsed_url.path == "/mark":
-            self.markImage()
-        elif parsed_url.path == "/forecast":
-            self.returnImage()
-        elif parsed_url.path == "/marked-forecast":
-            self.returnMarkedImage()
-        elif parsed_url.path == "/meta":
-            self.returnMetaData()
+        elif parsed_url.path == "/get-forecast":
+            self.returnMarkedImage(query)
+        elif parsed_url.path == "/get-metadata":
+            self.returnMetaData(query)
+        elif parsed_url.path == "/":
+            self.showHelp(False)
         else:
-            self.showHelp()
+            self.showHelp(True)
 
         
-    def showHelp(self):
+    def showHelp(self, invalid=True):
+        print("Showing help")
         self.send_header('Content-type','text/html')
         self.end_headers()
         
         self.wfile.write(b"<h1>Meteoswiss Forecast Generator</h1>\n")
+        
+        if invalid:
+            self.wfile.write(b"<span style=\"color: red\">Invalid call!</span><br><br><hr><br>\n")
+        
+        self.wfile.write(b"The generation of the forcast takes a moment. Because of this, it is a two-step-process:<br>1. Generate a forecast for a Zip Code using the wanted configuration. This has only to be done once an hour, MeteoSwiss only re-runs the model every few hours.<br>2. Download the forecast as many times as you want, applying the same zip code and optionally a time mark.<br>\n")                
+        self.wfile.write(b"Since every generated forecast is linked to its zip code, forecasts for differen cities can be provided at the same time.<br>\n")
+        
         self.wfile.write(b"<h2>Generate</h2>\n")
-        self.wfile.write(b"http://localhost:8080/generate")
+        url = publicHost + ":" + str(publicPort) + "/generate-forecast?zip-code=8001"
+        link = "<a href=\"" + url + "\">" + url + "</a>"
+        self.wfile.write(bytes(link, 'utf-8'))
         self.wfile.write(b"<h3>Parameters<h3>\n")
         self.wfile.write(b"<table>\n")
-        self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8000</td><td>Mandatory</td></tr>\n")
+        self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
         self.wfile.write(b"<tr><td><b>days-to-show:</b></td></td><td>Number of days to show (1..8).</td><td>Optional, default: 8</td></tr>\n")
         self.wfile.write(b"<tr><td><b>height:</b></td><td>Height of the graph in pixel.</td><td>Optional, default: 300</td></tr>\n")
         self.wfile.write(b"<tr><td><b>width:</b></td><td>Width of the graph in pixel.</td><td>Optional, default: 1920</td></tr>\n")
@@ -69,68 +73,132 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"</table>\n")
         
         self.wfile.write(b"<h3>Example</h3>\n")
-        url = "http://localhost:8080/generate?zip-code=8620&time-format=%H&time-divisions=3&height=250&width=1280&days-to-show=4&use-dark-mode=true&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.8&show-rain-variance=true"
+        url = publicHost + ":" + str(publicPort) + "/generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=4&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.8&show-rain-variance=true"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
     
-        self.wfile.write(b"<h2>Get Forecast</h2>\n")
-        self.wfile.write(b"<a href=\"http://localhost:8080/forecast\">http://localhost:8080/forecast</a>")
     
-        self.wfile.write(b"<h2>Mark with current time</h2>\n")
-        # TODO show parameters
-        self.wfile.write(b"<a href=\"http://localhost:8080/mark\">http://localhost:8080/mark</a>")
-    
-        self.wfile.write(b"<h2>Get Forecast marked with current time</h2>\n")
-        self.wfile.write(b"<a href=\"http://localhost:8080/marked-forecast\">http://localhost:8080/marked-forecast</a>")
-        
+        self.wfile.write(b"<h2>Get Forecast Image</h2>\n")
+        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001"
+        link = "<a href=\"" + url + "\">" + url + "</a>\n"
+        self.wfile.write(bytes(link, 'utf-8'))
+        self.wfile.write(b"<h3>Parameters<h3>\n")
+        self.wfile.write(b"<table>\n")
+        self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
+        self.wfile.write(b"<tr><td><b>mark-time:</b></td><td>Add a mark of the current time.</td><td>Optional, default: False</td></tr>\n")
+        self.wfile.write(b"</table>\n")
+
+        self.wfile.write(b"<h3>Example</h3>\n")
+        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001&mark-time=1"
+        link = "<a href=\"" + url + "\">" + url + "</a>\n"
+        self.wfile.write(bytes(link, 'utf-8'))
+
+
         self.wfile.write(b"<h2>Get Forecast Metadata</h2>\n")
-        self.wfile.write(b"<a href=\"http://localhost:8080/meta\">http://localhost:8080/meta</a>")
+        url = publicHost + ":" + str(publicPort) + "/get-metadata?zip-code=8001"
+        link = "<a href=\"" + url + "\">" + url + "</a>\n"
+        self.wfile.write(bytes(link, 'utf-8'))
+        self.wfile.write(b"<h3>Parameters<h3>\n")
+        self.wfile.write(b"<table>\n")
+        self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
+        self.wfile.write(b"</table>\n")
 
-
-    def markImage(self):
-        self.send_header('Content-type','text/html')
-        self.end_headers()
-        # TODO mark forecast
-        self.wfile.write(b"Done")
-        pass
     
-    
-    def returnImage(self):
+    def getForecastImage(self, query):
+        try:
+            if 'zip-code' in query:
+                zipCode = int(query['zip-code'][0])
+            else:
+                self.showHelp()
+                return
+        
+        except Exception as e:
+            self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
+            return
+        
         self.send_header('Content-type','image/png')
         self.end_headers()
         try:
-            f = open(forecastFile, 'rb').read()
+            f = open(forecastFile + str(zipCode) + ".png", 'rb').read()
             self.wfile.write(f)
         except Exception as e:
             self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
     
     
-    def returnMarkedImage(self):
+    def returnMarkedImage(self, query):
+        try:
+            if 'zip-code' in query:
+                zipCode = int(query['zip-code'][0])
+            else:
+                self.showHelp()
+                return
+        
+            if 'mark-time' in query:
+                markTime = str2bool(query['mark-time'][0])
+            else:
+                markTime = False
+        
+        except Exception as e:
+            self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
+            return
+        
+        
+        if markTime:
+            try:
+                with open(metaDataFile + str(zipCode) + ".json") as metaFile:
+                    metaData = json.load(metaFile)
+            except Exception as e:
+                self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
+                return
+
+            print(metaData)
+            markGraphic(inputFile=forecastFile + str(zipCode) + ".png", 
+                        outputFile=markedForecastFile + str(zipCode) + ".png", 
+                        metaFile=metaDataFile + str(zipCode) + ".json", x=metaData['firstDayX'], y=metaData['firstDayY'],
+                        w=metaData['dayWidth'], h=metaData['dayHeight'], fakeTime=False, test=False)
+
         self.send_header('Content-type','image/png')
         self.end_headers()
         try:
-            #f = open(markedForecastFile, 'rb').read()
-            # TODO return marked forecast
-            f = open(forecastFile, 'rb').read()
+            if markTime:
+                filename = markedForecastFile + str(zipCode) + ".png"
+            else:
+                filename = forecastFile + str(zipCode) + ".png"
+            print("Sending %s" % filename)
+            f = open(filename, 'rb').read()
             self.wfile.write(f)
         except Exception as e:
             self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
     
     
-    def returnMetaData(self):
+    def returnMetaData(self, query):
+        try:
+            if 'zip-code' in query:
+                zipCode = int(query['zip-code'][0])
+            else:
+                self.showHelp()
+                return
+        
+        except Exception as e:
+            self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
+            return
+        
         self.send_header('Content-type','application/json')
         self.end_headers()
         try:
-            f = open(metaDataFile, 'rb').read()
+            f = open(metaDataFile + str(zipCode) + ".json", 'rb').read()
             self.wfile.write(f)
         except Exception as e:
             self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
-            
             
             
     def generate(self, query):
         logLevel = logging.INFO
                 
+        # TODO return json with result info
+        self.send_header('Content-type','text/html')
+        self.end_headers()
+        
         try:
             if 'zip-code' in query:
                 zipCode = int(query['zip-code'][0])
@@ -218,45 +286,87 @@ class myHandler(BaseHTTPRequestHandler):
             
         self.wfile.write(b"Parameters ok<br>\n")
         self.wfile.flush()
-        print("Parameters ok")
+        print("Parameters ok", flush=True)
             
         logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logLevel)
         logging.getLogger("matplotlib").setLevel(logging.WARNING) # hiding the debug messages from the matplotlib
 
-        self.wfile.write(b"Feching data...<br>\n")
-        print("Parameters ok")
-        print("Fetching data...")
-        
-        meteoSwissForecast = MeteoSwissForecast(zipCode)        
+        self.wfile.write(b"Feching data for %d...<br>\n" % zipCode)
+        self.wfile.flush()
+        print("Fetching data for %d..." % zipCode, flush=True)
+
+        try:
+            meteoSwissForecast = MeteoSwissForecast(zipCode)      
+        except Exception as e:
+            print(e)
+            if "404" in str(e):
+                self.wfile.write(b"Unknown Zip Code!")
+            else:
+                self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))            
+            return
+
         dataUrl = meteoSwissForecast.getDataUrl()
-                
+        print("Data URL: %s" % dataUrl, flush=True)
+
         self.wfile.write(b"Generating Forecast...<br>\n")
-        print("Parameters ok")
-        print("Generating Forecast...")
+        self.wfile.flush()
+        print("Generating Forecast...", flush=True)
         
         forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
-        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=forecastFile, timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, writeMetaData=metaDataFile)
-                
-        self.wfile.write(b"Done<br>\n")
-        print("Generating Forecast...Done")        
+        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, writeMetaData=(metaDataFile + str(zipCode) + ".json"))
+        
+        print("Image got saved as " + forecastFile + str(zipCode) + ".png")
+        print("Metadata got saved as " + metaDataFile + str(zipCode) + ".json")
 
+        self.wfile.write(b"Done<br>\n")
+        print("Done", flush=True)       
+        
+        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001"
+        link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
+        self.wfile.write(bytes("You can now download the Forecast Image from " + link, 'utf-8'))
+
+        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001&mark-time=1"
+        link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
+        self.wfile.write(bytes("Or use the following link which additionally adds a mark of the current time: " + link, 'utf-8'))
+    
         return
 
+
 try:
-    forecastFile = "./data/forecast.png"
-    markedForecastFile = "./data/forecast-marked.png"
-    metaDataFile = "./data/metadata.json"
+    forecastFile = "./data/forecast_"
+    markedForecastFile = "./data/markedForecast_"
+    metaDataFile = "./data/metadata_"
+    
+    internalPort = 12080
+
+    if 'PUBLIC_HOST' in os.environ:
+        publicHost = os.environ['PUBLIC_HOST']
+    else:
+        publicHost = "http://localhost"
+    
+    print("Public Host: %s" % publicHost)
+
+    if 'PUBLIC_PORT' in os.environ:
+        publicPort = int(os.environ['PUBLIC_PORT'])
+    else:
+        publicPort = internalPort
+    
+    print("Public Port: %d" % publicPort)
     
     try:
         if not os.path.exists("./data"):
             os.makedirs("./data")
     except OSError:
         print ("Failed to create data folder")
-            
-    # Create a web server and define the handler to manage the
-    # incoming request
-    server = HTTPServer(('', PORT_NUMBER), myHandler)
-    print ('Started httpserver on port ' , PORT_NUMBER)
+except Exception as e:
+    print("An error occurred: %s" % e)
+    exit(1)
+
+# Run the service
+try:
+    server = HTTPServer(('', internalPort), myHandler)
+    print('Started Meteoswiss Forecast Generator on port %d' % publicPort)
+    print("Copyright (c) 2020 by George Ruinelli <george@ruinelli.ch>, https://github.com/caco3/MeteoSwiss-Forecast")
 
     # Wait forever for incoming http requests
     server.serve_forever()
@@ -264,3 +374,4 @@ try:
 except KeyboardInterrupt:
     print ('^C received, shutting down the web server')
     server.socket.close()
+
