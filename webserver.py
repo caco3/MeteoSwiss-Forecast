@@ -78,7 +78,7 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"</table>\n")
         
         self.wfile.write(b"<h3>Example</h3>\n")
-        url = "generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=4&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.8&show-rain-variance=true"
+        url = "generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=2&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.5&show-rain-variance=true"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
     
@@ -161,7 +161,7 @@ class myHandler(BaseHTTPRequestHandler):
             markGraphic(inputFile=forecastFile + str(zipCode) + ".png", 
                         outputFile=markedForecastFile + str(zipCode) + ".png", 
                         metaFile=metaDataFile + str(zipCode) + ".json", x=metaData['firstDayX'], y=metaData['firstDayY'],
-                        w=metaData['dayWidth'], h=metaData['dayHeight'], fakeTime=False, test=False)
+                        w=metaData['dayWidth'], h=metaData['dayHeight'], utcOffset=utcOffset, fakeTime=False, test=False)
 
         self.send_header('Content-type','image/png')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -305,7 +305,7 @@ class myHandler(BaseHTTPRequestHandler):
         print("Fetching data for %d..." % zipCode, flush=True)
 
         try:
-            meteoSwissForecast = MeteoSwissForecast(zipCode)      
+            meteoSwissForecast = MeteoSwissForecast(zipCode, utcOffset)      
         except Exception as e:
             print(e)
             if "404" in str(e):
@@ -345,9 +345,11 @@ try:
     forecastFile = "./data/forecast_"
     markedForecastFile = "./data/markedForecast_"
     metaDataFile = "./data/metadata_"
+    
+    utcOffset = 0
 
     internalPort = 80
-    #internalPort = 12081 # testing
+    fallbackPort = 12081 # testing
     
     try:
         if not os.path.exists("./data"):
@@ -358,12 +360,23 @@ except Exception as e:
     print("An error occurred: %s" % e)
     exit(1)
 
+if 'UTC_OFFSET' in os.environ:
+    utcOffset = int(os.environ['UTC_OFFSET'])
+    print("using UTC Offset from Environment: %d" % utcOffset)
+
+
 # Run the service
 try:
-    server = HTTPServer(('', internalPort), myHandler)
     print("Meteoswiss Forecast Generator")
     print("Copyright (c) 2020 by George Ruinelli <george@ruinelli.ch>, https://github.com/caco3/MeteoSwiss-Forecast")
-    
+    print("Starting...")
+    try:
+        server = HTTPServer(('', internalPort), myHandler)
+    except: # Cannot open port, use test port
+        internalPort = fallbackPort
+        server = HTTPServer(('', internalPort), myHandler)
+        
+    print("Listening on port %d" % internalPort)
     print("Ready to receive requests")
 
     # Wait forever for incoming http requests

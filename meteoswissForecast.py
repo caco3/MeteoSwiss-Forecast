@@ -51,17 +51,20 @@ class MeteoSwissForecast:
     days = 0
     data = {}
 
-    def __init__(self, zipCode):
+    def __init__(self, zipCode, utcOffset=None):
         self.zipCode = zipCode
 
         logging.debug("Using data for location with zip code %d" % self.zipCode)
         self.cityName = self.getCityName()
 
-        # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
-        ts = time.time()
-        utcOffset = (datetime.datetime.fromtimestamp(ts) -
-                    datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        self.utcOffset = int(utcOffset / 3600) # in hours
+        if not utcOffset:
+            # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
+            ts = time.time()
+            utcOffset = (datetime.datetime.fromtimestamp(ts) -
+                        datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+            self.utcOffset = int(utcOffset / 3600) # in hours
+        else:
+            self.utcOffset = utcOffset
         logging.debug("UTC offset: %dh" % self.utcOffset)
 
 
@@ -113,7 +116,8 @@ class MeteoSwissForecast:
         # Note that the time is in UTC!
         arr = arr[1].split("/")
         # Example of arr[0]: 20200609_0913
-        return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple()) + self.utcOffset * 3600)
+        #return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple()) + self.utcOffset * 3600)
+        return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple()))
 
 
     """
@@ -526,6 +530,7 @@ if __name__ == '__main__':
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
+    parser.add_argument('--utc-offset', action='store', type=int, help='Offset to UTC, only needed if system does not know it', default=None)
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels', default=6)
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
@@ -547,7 +552,7 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logLevel)
     logging.getLogger("matplotlib").setLevel(logging.WARNING) # hiding the debug messages from the matplotlib
 
-    meteoSwissForecast = MeteoSwissForecast(args.zip_code)
+    meteoSwissForecast = MeteoSwissForecast(zipCode=args.zip_code, utcOffset=args.utc_offset)
     dataUrl = meteoSwissForecast.getDataUrl()
     forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
     #pprint.pprint(forecastData)
