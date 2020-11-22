@@ -7,7 +7,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# CMD [ "python", "meteoswiss-forecast.py", "-z", "8001", "-f", "data/myForecast.png", "-v" ]
-
-EXPOSE 8080
+EXPOSE 80
 CMD ["python3", "webserver.py"]

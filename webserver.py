@@ -50,10 +50,14 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Since every generated forecast is linked to its zip code, forecasts for differen cities can be provided at the same time.<br>\n")
         
         self.wfile.write(b"<h2>Generate</h2>\n")
-        url = publicHost + ":" + str(publicPort) + "/generate-forecast?zip-code=8001"
+        url = "generate-forecast?zip-code=8001"
         link = "<a href=\"" + url + "\">" + url + "</a>"
         self.wfile.write(bytes(link, 'utf-8'))
-        self.wfile.write(b"<h3>Parameters<h3>\n")
+        
+        self.wfile.write(b"<h3>Note</h3>\n")
+        self.wfile.write(b"Depending on the number of days to show, this will take several seconds!\n")
+        
+        self.wfile.write(b"<h3>Parameters</h3>\n")
         self.wfile.write(b"<table>\n")
         self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
         self.wfile.write(b"<tr><td><b>days-to-show:</b></td></td><td>Number of days to show (1..8).</td><td>Optional, default: 8</td></tr>\n")
@@ -73,32 +77,32 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"</table>\n")
         
         self.wfile.write(b"<h3>Example</h3>\n")
-        url = publicHost + ":" + str(publicPort) + "/generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=4&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.8&show-rain-variance=true"
+        url = "generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=4&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.8&show-rain-variance=true"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
     
     
         self.wfile.write(b"<h2>Get Forecast Image</h2>\n")
-        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001"
+        url = "get-forecast?zip-code=8001"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
-        self.wfile.write(b"<h3>Parameters<h3>\n")
+        self.wfile.write(b"<h3>Parameters</h3>\n")
         self.wfile.write(b"<table>\n")
         self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
         self.wfile.write(b"<tr><td><b>mark-time:</b></td><td>Add a mark of the current time.</td><td>Optional, default: False</td></tr>\n")
         self.wfile.write(b"</table>\n")
 
         self.wfile.write(b"<h3>Example</h3>\n")
-        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001&mark-time=1"
+        url = "get-forecast?zip-code=8001&mark-time=1"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
 
 
         self.wfile.write(b"<h2>Get Forecast Metadata</h2>\n")
-        url = publicHost + ":" + str(publicPort) + "/get-metadata?zip-code=8001"
+        url = "get-metadata?zip-code=8001"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
-        self.wfile.write(b"<h3>Parameters<h3>\n")
+        self.wfile.write(b"<h3>Parameters</h3>\n")
         self.wfile.write(b"<table>\n")
         self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
         self.wfile.write(b"</table>\n")
@@ -212,7 +216,7 @@ class myHandler(BaseHTTPRequestHandler):
                     self.wfile.write(bytes("days-to-show must be 1..8!"))
                     return
             else:
-                daysToShow = 7
+                daysToShow = 2
                     
             if 'height' in query:
                 height = int(query['height'][0])
@@ -321,11 +325,11 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Done<br>\n")
         print("Done", flush=True)       
         
-        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001"
+        url = "get-forecast?zip-code=8001"
         link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
         self.wfile.write(bytes("You can now download the Forecast Image from " + link, 'utf-8'))
 
-        url = publicHost + ":" + str(publicPort) + "/get-forecast?zip-code=8001&mark-time=1"
+        url = "get-forecast?zip-code=8001&mark-time=1"
         link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
         self.wfile.write(bytes("Or use the following link which additionally adds a mark of the current time: " + link, 'utf-8'))
     
@@ -336,22 +340,9 @@ try:
     forecastFile = "./data/forecast_"
     markedForecastFile = "./data/markedForecast_"
     metaDataFile = "./data/metadata_"
-    
-    internalPort = 12080
 
-    if 'PUBLIC_HOST' in os.environ:
-        publicHost = os.environ['PUBLIC_HOST']
-    else:
-        publicHost = "http://localhost"
-    
-    print("Public Host: %s" % publicHost)
-
-    if 'PUBLIC_PORT' in os.environ:
-        publicPort = int(os.environ['PUBLIC_PORT'])
-    else:
-        publicPort = internalPort
-    
-    print("Public Port: %d" % publicPort)
+    internalPort = 80
+    #internalPort = 12081 # testing
     
     try:
         if not os.path.exists("./data"):
@@ -365,8 +356,10 @@ except Exception as e:
 # Run the service
 try:
     server = HTTPServer(('', internalPort), myHandler)
-    print('Started Meteoswiss Forecast Generator on port %d' % publicPort)
+    print("Meteoswiss Forecast Generator")
     print("Copyright (c) 2020 by George Ruinelli <george@ruinelli.ch>, https://github.com/caco3/MeteoSwiss-Forecast")
+    
+    print("Ready to receive requests")
 
     # Wait forever for incoming http requests
     server.serve_forever()
