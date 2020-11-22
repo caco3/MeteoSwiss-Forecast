@@ -56,7 +56,7 @@ rm *.svg
 1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast -p 12080:80 meteoswiss-forecast`
 1. Call it in a webbrowser: `http://localhost:12080`
 
-:exclamation: Within the docker container, the UTC offset is always 0!
+:exclamation: Within the docker container, the UTC offset is always 0! To work around this, set the environment variable `UTC_OFFSET`.
 
 ## Export Docker Container
 `sudo docker save meteoswiss-forecast > meteoswiss-forecast.tar`
