@@ -39,6 +39,7 @@ class myHandler(BaseHTTPRequestHandler):
     def showHelp(self, invalid=True):
         print("Showing help")
         self.send_header('Content-type','text/html')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
         self.wfile.write(b"<h1>Meteoswiss Forecast Generator</h1>\n")
@@ -121,6 +122,7 @@ class myHandler(BaseHTTPRequestHandler):
             return
         
         self.send_header('Content-type','image/png')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         try:
             f = open(forecastFile + str(zipCode) + ".png", 'rb').read()
@@ -162,6 +164,7 @@ class myHandler(BaseHTTPRequestHandler):
                         w=metaData['dayWidth'], h=metaData['dayHeight'], fakeTime=False, test=False)
 
         self.send_header('Content-type','image/png')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         try:
             if markTime:
@@ -188,6 +191,7 @@ class myHandler(BaseHTTPRequestHandler):
             return
         
         self.send_header('Content-type','application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         try:
             f = open(metaDataFile + str(zipCode) + ".json", 'rb').read()
@@ -201,6 +205,7 @@ class myHandler(BaseHTTPRequestHandler):
                 
         # TODO return json with result info
         self.send_header('Content-type','text/html')
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
         try:
@@ -325,11 +330,11 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Done<br>\n")
         print("Done", flush=True)       
         
-        url = "get-forecast?zip-code=8001"
+        url = "get-forecast?zip-code=" + str(zipCode)
         link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
         self.wfile.write(bytes("You can now download the Forecast Image from " + link, 'utf-8'))
 
-        url = "get-forecast?zip-code=8001&mark-time=1"
+        url = "get-forecast?zip-code=" + str(zipCode) + "&mark-time=1"
         link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
         self.wfile.write(bytes("Or use the following link which additionally adds a mark of the current time: " + link, 'utf-8'))
     
