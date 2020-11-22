@@ -78,7 +78,7 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"</table>\n")
         
         self.wfile.write(b"<h3>Example</h3>\n")
-        url = "generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=2&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=0.5&show-rain-variance=true"
+        url = "generate-forecast?zip-code=8001&time-format=%H&time-divisions=3&height=250&width=600&days-to-show=2&show-min-max-temperatures=true&font-size=12&locale=de_DE.utf8&symbol-zoom=1.0&show-rain-variance=true"
         link = "<a href=\"" + url + "\">" + url + "</a>\n"
         self.wfile.write(bytes(link, 'utf-8'))
     

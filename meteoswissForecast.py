@@ -43,7 +43,7 @@ class MeteoSwissForecast:
 
     # Surounding colors
     colorsLightMode = {"background": "white", "x-axis": "black", "rain-axis": "#0001f9", "temperature-axis": "red"}
-    colorsDarkMode = {"background": "black", "x-axis": "white", "rain-axis": "lightblue", "temperature-axis": "red"}
+    colorsDarkMode = {"background": "black", "x-axis": "white", "rain-axis": "lightblue", "temperature-axis": "lightcoral"}
 
     temperatureColor = "red"
 
@@ -475,7 +475,7 @@ class MeteoSwissForecast:
 
 
         # Show y-axis units
-        rainAxis.annotate("mm\n/h", linespacing = 0.8, xy=(width + 20, height + 5), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
+        rainAxis.annotate("mm\n/h", linespacing = 0.8, xy=(width + 25, height + 12), xycoords='axes pixels', ha="center", color=colors["rain-axis"])
         rainAxis.annotate("°C", xy=(-20, height + 10), xycoords='axes pixels', ha="center", color=colors["temperature-axis"])
 
 
@@ -487,7 +487,7 @@ class MeteoSwissForecast:
                 continue
             symbolImage = mpimg.imread(symbolFile)
             imagebox = OffsetImage(symbolImage, zoom=symbolZoom / 1.41 * 0.15)
-            xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 15
+            xyPos = ((data["symbolsTimestamps"][i] - data["symbolsTimestamps"][0]) / (24*3600) + len(data["symbols"])/24/6/data["noOfDays"]) * xPixelsPerDay, height + 22
             ab = AnnotationBbox(imagebox, xy=xyPos, xycoords='axes pixels', frameon=False)
             rainAxis.add_artist(ab)
 
