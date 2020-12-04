@@ -179,7 +179,7 @@ class MeteoSwissForecast:
 
         #symbols = self.dataExtractorNormal(forecastData, self.days, "symbols", 1)
         symbolsTimestamps, symbols = self.dataExtractorSymbols(forecastData, self.days, "symbols", "timestamp", "weather_symbol_id")
-        
+
         self.data["noOfDays"] = self.days
         self.data["dayNames"] = dayNames
         self.data["timestamps"] = timestamps
@@ -194,6 +194,14 @@ class MeteoSwissForecast:
         self.data["windGustPeak"] = windGustPeak
         self.data["symbols"] = symbols
         self.data["symbolsTimestamps"] = symbolsTimestamps
+
+        # Sometimes the data contains None for some fields
+        # We replace it by NaN
+        for key, data in self.data.items():
+            try:
+                self.data[key] =  [np.nan if v is None else v for v in self.data[key]]
+            except:
+                pass
 
         logging.debug("All data parsed")
         return self.data
@@ -419,9 +427,11 @@ class MeteoSwissForecast:
 
 
         # Make sure the temperature scaling has a gap of 45 pixel, so we can fit the labels
-        interimPixelToTemperature = (max(data["temperature"]) - min(data["temperature"])) / height
-        temperatureScaleMin = min(data["temperature"]) - float(45) * interimPixelToTemperature
-        temperatureScaleMax = max(data["temperature"]) + float(45) * interimPixelToTemperature
+
+        interimPixelToTemperature = (np.nanmax(data["temperature"]) - np.nanmin(data["temperature"])) / height
+        temperatureScaleMin = np.nanmin(data["temperature"]) - float(45) * interimPixelToTemperature
+        temperatureScaleMax = np.nanmax(data["temperature"]) + float(45) * interimPixelToTemperature
+
 
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
         temperatureAxis.locator_params(axis='y', nbins=6)
@@ -526,7 +536,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', action='store_true', help='Verbose output')
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the city to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written')
-    parser.add_argument('-m', '--meta', type=argparse.FileType('w'), help='File name with meta data to be written')
+    parser.add_argument('-m', '--meta', type=argparse.FileType('w'), required=True, help='File name with meta data to be written')
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
