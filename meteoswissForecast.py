@@ -302,9 +302,8 @@ class MeteoSwissForecast:
         else:
             colors = self.colorsLightMode
 
-        #fig = plt.figure(0) # Main figure
-        #rainAxis = fig.add_subplot(111)
-        fig, rainAxis = plt.subplots()
+        fig = plt.figure(0) # Main figure
+        rainAxis = fig.add_subplot(111)
 
         # set font sizes
         plt.rcParams.update({'font.size': fontSize}) # Temperature Y axis and day names
@@ -485,16 +484,16 @@ class MeteoSwissForecast:
 
                 # Max Temperature Labels
                 text = str(int(round(maxTemperatureOfDay["data"], 0))) + "°C"
-                #f = plt.figure(1) # Temporary figure to get the dimensions of the text label
-                #t = plt.text(0, 0, text, weight='bold')
-                #temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
-                #plt.figure(0) # Select Main figure again
+                f = plt.figure(1) # Temporary figure to get the dimensions of the text label
+                t = plt.text(0, 0, text, weight='bold')
+                temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+                plt.figure(0) # Select Main figure again
 
-                ## Check if text is fully within the day (x axis)
-                #if maxTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
-                    #maxTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
-                #if maxTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
-                    #maxTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+                # Check if text is fully within the day (x axis)
+                if maxTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
+                    maxTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
+                if maxTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
+                    maxTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
 
                 temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(maxTemperatureOfDay["xpixel"], maxTemperatureOfDay["ypixel"] + 8),
                                                  ha="center", va="bottom", color=colors["temperature-label"], weight='bold',
@@ -502,16 +501,16 @@ class MeteoSwissForecast:
 
                 # Min Temperature Labels
                 text = str(int(round(minTemperatureOfDay["data"], 0))) + "°C"
-                #f = plt.figure(1) # Temporary figure to get the dimensions of the text label
-                #t = plt.text(0, 0, text, weight='bold')
-                #temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
-                #plt.figure(0) # Select Main figure again
+                f = plt.figure(1) # Temporary figure to get the dimensions of the text label
+                t = plt.text(0, 0, text, weight='bold')
+                temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+                plt.figure(0) # Select Main figure again
 
-                ## Check if text is fully within the day (x axis)
-                #if minTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
-                    #minTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
-                #if minTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
-                    #minTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+                # Check if text is fully within the day (x axis)
+                if minTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
+                    minTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
+                if minTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
+                    minTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
 
                 temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(minTemperatureOfDay["xpixel"], minTemperatureOfDay["ypixel"] - 12),
                                                  ha="center", va="top", color=colors["temperature-label"], weight='bold',
@@ -552,7 +551,7 @@ class MeteoSwissForecast:
         # Save the graph in a png image file
         logging.debug("Saving graph to %s" % outputFilename)
         plt.savefig(outputFilename, facecolor=colors["background"])
-        plt.clf() # Erase figure so it is empty for the next usage
+        plt.close()
 
         # Write Meta Data
         if writeMetaData:
