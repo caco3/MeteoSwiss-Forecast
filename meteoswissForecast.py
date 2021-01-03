@@ -308,7 +308,7 @@ class MeteoSwissForecast:
         # set font sizes
         plt.rcParams.update({'font.size': fontSize}) # Temperature Y axis and day names
         rainAxis.tick_params(axis='y', labelsize=fontSize) # Rain Y axis
-        plt.xticks(fontSize=fontSize) # Time axis
+        plt.xticks(fontsize=fontSize) # Time axis
 
 
         if not graphWidth:
