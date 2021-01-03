@@ -452,7 +452,7 @@ class MeteoSwissForecast:
         # Mark min/max temperature per day
         if minMaxTemperature:
             da = DrawingArea(2, 2, 0, 0)
-            da.add_artist(Circle((0, 0), 4, color=self.temperatureColor, fc="white", lw=2))
+            da.add_artist(Circle((1, 1), 4, color=self.temperatureColor, fc="white", lw=2))
             for day in range(0, data["noOfDays"]):
                 maxTemperatureOfDay = {"data": -100, "timestamp": 0}
                 minTemperatureOfDay = {"data": +100, "timestamp": 0}
