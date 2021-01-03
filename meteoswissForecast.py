@@ -47,6 +47,8 @@ class MeteoSwissForecast:
 
     temperatureColor = "red"
 
+    textShadowWidth = 3 # pixel
+
     utcOffset = 0
     days = 0
     data = {}
@@ -204,6 +206,10 @@ class MeteoSwissForecast:
                 pass
 
         logging.debug("All data parsed")
+
+        # Export it for testing
+        #self.exportForecastData(forecastData, "forecast.json")
+
         return self.data
 
 
@@ -274,6 +280,7 @@ class MeteoSwissForecast:
     def exportForecastData(self, forecastData, outputFilename):
         with open(outputFilename, 'w') as outfile:
             json.dump(forecastData, outfile, indent=2)
+        print("Forecast data got exported to %s" % outputFilename)
 
 
     """
@@ -454,30 +461,57 @@ class MeteoSwissForecast:
             da = DrawingArea(2, 2, 0, 0)
             da.add_artist(Circle((1, 1), 4, color=self.temperatureColor, fc="white", lw=2))
             for day in range(0, data["noOfDays"]):
+                dayXPixelMin = day * xPixelsPerDay
+                dayXPixelMax = (day + 1) * xPixelsPerDay - 1
                 maxTemperatureOfDay = {"data": -100, "timestamp": 0}
                 minTemperatureOfDay = {"data": +100, "timestamp": 0}
                 for h in range(0, 24):
                     if data["temperature"][day * 24 + h] > maxTemperatureOfDay["data"]:
                         maxTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
                         maxTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
+                        maxTemperatureOfDay["xpixel"] = (data["timestamps"][day * 24 + h] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        maxTemperatureOfDay["ypixel"] = (data["temperature"][day * 24 + h] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
                     if data["temperature"][day * 24 + h] < minTemperatureOfDay["data"]:
                         minTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
                         minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
+                        minTemperatureOfDay["xpixel"] = (data["timestamps"][day * 24 + h] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        minTemperatureOfDay["ypixel"] = (data["temperature"][day * 24 + h] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+
                 # Circles
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
-                # Labels
-                # TODO make sure the labels are not standing out of the plot on the sides
-                temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C",
-                                                 xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + float(8) * pixelToTemperature),
-                                                 xycoords='data', ha="center", va="bottom", color=colors["temperature-label"], weight='bold',
-                                                 path_effects=[path_effects.withStroke(linewidth=3, foreground="w")])
-                temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C",
-                                                 xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] - float(12) * pixelToTemperature),
-                                                 xycoords='data', ha="center", va="top", color=colors["temperature-label"], weight='bold',
-                                                 path_effects=[path_effects.withStroke(linewidth=3, foreground="w")])
+                # Max Temperature Labels
+                text = str(int(round(maxTemperatureOfDay["data"], 0))) + "°C"
+                f = plt.figure(1) # Temporary figure to get the dimensions of the text label
+                t = plt.text(0, 0, text, weight='bold')
+                temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
 
+                # Check if text is fully within the day (x axis)
+                if maxTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
+                    maxTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
+                if maxTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
+                    maxTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+
+                temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(maxTemperatureOfDay["xpixel"], maxTemperatureOfDay["ypixel"] + 8),
+                                                 ha="center", va="bottom", color=colors["temperature-label"], weight='bold',
+                                                 path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
+
+                # Min Temperature Labels
+                text = str(int(round(minTemperatureOfDay["data"], 0))) + "°C"
+                f = plt.figure(1) # Temporary figure to get the dimensions of the text label
+                t = plt.text(0, 0, text, weight='bold')
+                temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+
+                # Check if text is fully within the day (x axis)
+                if minTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
+                    minTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
+                if minTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
+                    minTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+
+                temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(minTemperatureOfDay["xpixel"], minTemperatureOfDay["ypixel"] - 12),
+                                                 ha="center", va="top", color=colors["temperature-label"], weight='bold',
+                                                 path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
 
         # Print day names
         for day in range(0, data["noOfDays"]):
@@ -508,7 +542,7 @@ class MeteoSwissForecast:
         if showCityName:
             logging.debug("Adding city name to plot...")
             text = fig.text(1-7/width, 1-20/height, self.cityName, color='gray', ha='right', transform=rainAxis.transAxes)
-            text.set_path_effects([path_effects.Stroke(linewidth=3, foreground='white'), path_effects.Normal()])
+            text.set_path_effects([path_effects.Stroke(linewidth=self.textShadowWidth, foreground='white'), path_effects.Normal()])
 
 
         # Save the graph in a png image file
@@ -529,6 +563,7 @@ class MeteoSwissForecast:
             metaData['modelTimestamp'] = self.data["modelCalculationTimestamp"] # Seconds in UTC
             with open(writeMetaData, 'w') as metaFile:
                 json.dump(metaData, metaFile)
+
 
 
 if __name__ == '__main__':
@@ -569,4 +604,3 @@ if __name__ == '__main__':
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, writeMetaData=args.meta.name)
-
