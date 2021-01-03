@@ -338,6 +338,7 @@ class myHandler(BaseHTTPRequestHandler):
         link = "<a href=\"" + url + "\">" + url + "</a><br>\n"
         self.wfile.write(bytes("Or use the following link which additionally adds a mark of the current time: " + link, 'utf-8'))
     
+        del meteoSwissForecast
         return
 
 
