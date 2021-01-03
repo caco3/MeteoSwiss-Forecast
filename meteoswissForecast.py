@@ -302,7 +302,8 @@ class MeteoSwissForecast:
         else:
             colors = self.colorsLightMode
 
-        fig, rainAxis = plt.subplots()
+        fig = plt.figure(0) # Main figure
+        rainAxis = fig.add_subplot(111)
 
         # set font sizes
         plt.rcParams.update({'font.size': fontSize}) # Temperature Y axis and day names
@@ -486,6 +487,7 @@ class MeteoSwissForecast:
                 f = plt.figure(1) # Temporary figure to get the dimensions of the text label
                 t = plt.text(0, 0, text, weight='bold')
                 temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+                plt.figure(0) # Select Main figure again
 
                 # Check if text is fully within the day (x axis)
                 if maxTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
@@ -502,6 +504,7 @@ class MeteoSwissForecast:
                 f = plt.figure(1) # Temporary figure to get the dimensions of the text label
                 t = plt.text(0, 0, text, weight='bold')
                 temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+                plt.figure(0) # Select Main figure again
 
                 # Check if text is fully within the day (x axis)
                 if minTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
@@ -548,6 +551,7 @@ class MeteoSwissForecast:
         # Save the graph in a png image file
         logging.debug("Saving graph to %s" % outputFilename)
         plt.savefig(outputFilename, facecolor=colors["background"])
+        plt.clf() # Erase figure so it is empty for the next usage
 
         # Write Meta Data
         if writeMetaData:
