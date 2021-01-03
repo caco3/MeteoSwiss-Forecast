@@ -6,7 +6,7 @@ The graph contains the rain and temperature forecast. later one is enhanced with
 The graph is highly configurable, how ever in the default configuration it tries to adapt the style of the MeteoSwiss App.
 
 ### Default
-`python3 meteoswiss-forecast.py -z 8001 -f myForecast.png`
+`python3 meteoswissForecast.py -z 8001 -f myForecast.png`
 
 ![MeteoSwiss Style](doc/default.png)
 
@@ -14,12 +14,12 @@ The graph is highly configurable, how ever in the default configuration it tries
 Additionally, you can switch to a dark mode, change the time divisions, select the number of days and even mark the min/max temperature per day.
 
 #### Example 1
-`python3 meteoswiss-forecast.py -z 6986 -f myForecast.png --days-to-show 3 --width 800 --symbol-division 2 --min-max-temperature`
+`python3 meteoswissForecast.py -z 6986 -f myForecast.png --days-to-show 3 --width 800 --symbol-division 2 --min-max-temperature`
 
 ![MeteoSwiss Style](doc/example1.png)
 
 #### Example 2
-`python3 meteoswiss-forecast.py -z 8001 -f myForecast.png --days-to-show 3 --time-division 2 --width 1200 --height 300 --min-max-temperature --dark-mode --locale de_DE.utf8 --compact-time-format`
+`python3 meteoswissForecast.py -z 8001 -f myForecast.png --days-to-show 3 --time-division 2 --width 1200 --height 300 --min-max-temperature --dark-mode --locale de_DE.utf8 --compact-time-format`
 
 ![MeteoSwiss Style](doc/example2.png)
 
@@ -27,7 +27,7 @@ Additionally, you can switch to a dark mode, change the time divisions, select t
 The repo contains an extra script to add a mark of the current time (red bar). One might want to update this every minute or so.
 Since the generation of the forecast is rater slow, one might want to only update the current time mark at a high frequency but only generate the forecast once every hour.
 
-`python3 mark-graphic.py -i myForecast.png -o myForecast-marked.png -x 52 -y 50 -w 295 -H 161`
+`python3 markGraphic.py -i myForecast.png -o myForecast-marked.png -x 52 -y 50 -w 295 -H 161`
 
 ![MeteoSwiss Style](doc/forecast-marked.png)
 
@@ -38,7 +38,7 @@ Run `python3 -m pip install -r requirements.txt` to install all needed Python pa
 
 ### Get Symbols
 MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
-Due to copyright concerns, I do not provide the converted files here, instead, download and convert them yourself:
+The folder `symbols` provides the already converted symbols. Alternatively you can generate them yourself:
 ```
 mkdir symbols
 cd symbols
@@ -49,12 +49,17 @@ rm *.svg
 ```
 
 
-# Run it in a Docker Container
+# Docker
+## Run it in a Docker Container
 1. Adjust the parameters in `Dockerfile`
-1. Build the docker image with `docker build -t meteoswiss-forecast .`.
-1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast-test01 meteoswiss-forecast`
+1. Build the docker image with `docker build -t meteoswiss-forecast .`
+1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast -p 12080:80 meteoswiss-forecast`
+1. Call it in a webbrowser: `http://localhost:12080`
 
-:exclamation: Within the docker container, the UTC offset is always 0!
+:exclamation: Within the docker container, the UTC offset is always 0! To work around this, set the environment variable `UTC_OFFSET`.
+
+## Export Docker Container
+`sudo docker save meteoswiss-forecast > meteoswiss-forecast.tar`
 
 
 # Legal

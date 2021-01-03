@@ -1,2 +1,5 @@
 *.png
-symbols
+__pycache__/*
+data/*
+meta.json
+*.tar
