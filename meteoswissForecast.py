@@ -42,8 +42,8 @@ class MeteoSwissForecast:
     rainColors = ["#9d7d95", "#0001f9", "#088b2d", "#06fd0c", "#fffe00", "#ffc703", "#fc7e06", "#fe1a00", "#ac00e0"] # as used in the MeteoSwiss App
 
     # Surounding colors
-    colorsLightMode = {"background": "white", "x-axis": "black", "rain-axis": "#0001f9", "temperature-axis": "red"}
-    colorsDarkMode = {"background": "black", "x-axis": "white", "rain-axis": "lightblue", "temperature-axis": "lightcoral"}
+    colorsLightMode = {"background": "white", "x-axis": "black", "rain-axis": "#0001f9", "temperature-axis": "red", "temperature-label": "red"}
+    colorsDarkMode = {"background": "black", "x-axis": "white", "rain-axis": "lightblue", "temperature-axis": "#ffabab", "temperature-label": "red"}
 
     temperatureColor = "red"
 
@@ -471,11 +471,11 @@ class MeteoSwissForecast:
                 # TODO make sure the labels are not standing out of the plot on the sides
                 temperatureVarianceAxis.annotate(str(int(round(maxTemperatureOfDay["data"], 0))) + "°C",
                                                  xy=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"] + float(8) * pixelToTemperature),
-                                                 xycoords='data', ha="center", va="bottom", color=colors["temperature-axis"], weight='bold',
+                                                 xycoords='data', ha="center", va="bottom", color=colors["temperature-label"], weight='bold',
                                                  path_effects=[path_effects.withStroke(linewidth=3, foreground="w")])
                 temperatureVarianceAxis.annotate(str(int(round(minTemperatureOfDay["data"], 0))) + "°C",
                                                  xy=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"] - float(12) * pixelToTemperature),
-                                                 xycoords='data', ha="center", va="top", color=colors["temperature-axis"], weight='bold',
+                                                 xycoords='data', ha="center", va="top", color=colors["temperature-label"], weight='bold',
                                                  path_effects=[path_effects.withStroke(linewidth=3, foreground="w")])
 
 
