@@ -369,6 +369,13 @@ if 'UTC_OFFSET' in os.environ:
 try:
     print("Meteoswiss Forecast Generator")
     print("Copyright (c) 2020 by George Ruinelli <george@ruinelli.ch>, https://github.com/caco3/MeteoSwiss-Forecast")
+
+    # Check if we run withing a docker container
+    IN_DOCKER = os.environ.get('AM_I_IN_A_DOCKER_CONTAINER', False)
+    if IN_DOCKER:
+        with open("build-date.txt") as buildDateFile:
+            print("Docker build date:", buildDateFile.read())
+
     print("Starting...")
     try:
         server = HTTPServer(('', internalPort), myHandler)

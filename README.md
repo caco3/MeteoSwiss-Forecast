@@ -59,7 +59,7 @@ rm *.svg
 :exclamation: Within the docker container, the UTC offset is always 0! To work around this, set the environment variable `UTC_OFFSET`.
 
 ## Export Docker Container
-`sudo docker save meteoswiss-forecast > meteoswiss-forecast.tar`
+`sudo docker save meteoswiss-forecast > ../meteoswiss-forecast.tar`
 
 
 # Legal

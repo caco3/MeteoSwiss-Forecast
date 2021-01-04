@@ -22,3 +22,8 @@ COPY . .
 
 EXPOSE 80
 CMD ["python3", "webserver.py"]
+
+
+ENV AM_I_IN_A_DOCKER_CONTAINER Yes
+
+RUN date >/build-date.txt
