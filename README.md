@@ -50,7 +50,7 @@ rm *.svg
 
 
 # Docker
-## get it from Dockerhub
+## Get it from Dockerhub
 https://hub.docker.com/r/caco3x/meteoswiss-forecast
 
 ## Build it manually
