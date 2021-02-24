@@ -50,6 +50,12 @@ rm *.svg
 
 
 # Docker
+## get it from Dockerhub
+https://hub.docker.com/r/caco3x/meteoswiss-forecast
+
+## Build it manually
+`docker build -t meteoswiss-forecast .`
+
 ## Run it in a Docker Container
 1. Adjust the parameters in `Dockerfile`
 1. Build the docker image with `docker build -t meteoswiss-forecast .`
@@ -57,10 +63,6 @@ rm *.svg
 1. Call it in a webbrowser: `http://localhost:12080`
 
 :exclamation: Within the docker container, the UTC offset is always 0! To work around this, set the environment variable `UTC_OFFSET`.
-
-## Export Docker Container
-`sudo docker save meteoswiss-forecast > ../meteoswiss-forecast.tar`
-
 
 # Legal
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
