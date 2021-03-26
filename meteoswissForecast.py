@@ -164,8 +164,13 @@ class MeteoSwissForecast:
 
             # get timestamps (the same for all data)
             for hour in range(0, 24):
-                timestamp = forecastData[day]["rainfall"][hour][0]
-                timestamp = int(int(timestamp) / 1000) + self.utcOffset * 3600
+                try: # Last day might not have 24h
+                    #print(day, hour)
+                    timestamp = forecastData[day]["rainfall"][hour][0]
+                    timestamp = int(int(timestamp) / 1000) + self.utcOffset * 3600
+                except:
+                    logging.warning("For day %d only data of %d hours are provided!" % (day, hour))
+                    timestamp = timestamps[-1] + 3600 # Use timstamp of last hour and add 3600 seconds
                 timestamps.append(timestamp)
 
         dayIndex = 0
@@ -220,7 +225,11 @@ class MeteoSwissForecast:
         topicData = []
         for day in range(0, days):
             for hour in range(0, 24):
-                topicData.append(forecastData[day][topic][hour][index])
+                try:
+                    topicData.append(forecastData[day][topic][hour][index])
+                except:
+                    logging.warning("For day %d only %s data of %d hours are provided!" % (day, topic, hour))
+                    topicData.append(None)
         return topicData
 
 
@@ -231,7 +240,11 @@ class MeteoSwissForecast:
         topicData = []
         for day in range(0, days):
             for hour in range(0, 24):
-                topicData.append(forecastData[day][topic][subField][hour][index])
+                try:
+                    topicData.append(forecastData[day][topic][subField][hour][index])
+                except:
+                    logging.warning("For day %d only %s data of %d hours are provided!" % (day, topic, hour))
+                    topicData.append(None)
         return topicData
 
 
@@ -243,8 +256,13 @@ class MeteoSwissForecast:
         topicDataMax = []
         for day in range(0, days):
             for hour in range(0, 24):
-                topicDataMin.append(forecastData[day][topic][hour][indexMin])
-                topicDataMax.append(forecastData[day][topic][hour][indexMax])
+                try:
+                    topicDataMin.append(forecastData[day][topic][hour][indexMin])
+                    topicDataMax.append(forecastData[day][topic][hour][indexMax])
+                except:
+                    logging.warning("For day %d only %s data of %d hours are provided!" % (day, topic, hour))
+                    topicDataMin.append(None)
+                    topicDataMax.append(None)
         return [topicDataMin, topicDataMax]
 
 
