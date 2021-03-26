@@ -25,15 +25,15 @@ import json
 class MeteoSwissForecast:
     # Constants
     domain = "http://www.meteoschweiz.admin.ch"
-    indexPage = "home.html?tab=overview"
+    indexPage = "home.html?tab=overview" # => https://www.meteoschweiz.admin.ch/home.html?tab=overview
 
     dataUrlPrefix = "/product/output/forecast-chart/version__"
     dataUrlSuffix = ".json"
 
-    locationUrlPrefix = "/etc/designs/meteoswiss/ajax/location/"
+    locationUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/ajax/location/"
     locationUrlSuffix = ".json"
 
-    symbolsUrlPrefix = "/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/"
+    symbolsUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols/"
     symbolsUrlSuffix = ".svg"
 
     # MeteoSwiss preset (Violet, Blue, Green, Light Green, Yellow, Light Orange, Orange, Red, Violet)
