@@ -33,8 +33,8 @@ class MeteoSwissForecast:
     locationUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/ajax/location/"
     locationUrlSuffix = ".json"
 
-    symbolsUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols/"
-    symbolsUrlSuffix = ".svg"
+    #symbolsUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols/"
+    #symbolsUrlSuffix = ".svg"
 
     # MeteoSwiss preset (Violet, Blue, Green, Light Green, Yellow, Light Orange, Orange, Red, Violet)
     rainColorSteps = [1, 2, 4, 6, 10, 20, 40, 60, 100] # as used in the MeteoSwiss App
