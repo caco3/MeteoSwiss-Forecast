@@ -6,7 +6,7 @@ The graph contains the rain and temperature forecast. later one is enhanced with
 The graph is highly configurable, how ever in the default configuration it tries to adapt the style of the MeteoSwiss App.
 
 ### Default
-`python3 meteoswissForecast.py -z 8001 -f myForecast.png`
+`python3 meteoswissForecast.py -z 8001 -f myForecast.png -m meta.json`
 
 ![MeteoSwiss Style](doc/default.png)
 
@@ -14,12 +14,12 @@ The graph is highly configurable, how ever in the default configuration it tries
 Additionally, you can switch to a dark mode, change the time divisions, select the number of days and even mark the min/max temperature per day.
 
 #### Example 1
-`python3 meteoswissForecast.py -z 6986 -f myForecast.png --days-to-show 3 --width 800 --symbol-division 2 --min-max-temperature`
+`python3 meteoswissForecast.py -z 6986 -f myForecast.png -m meta.json --days-to-show 3 --width 800 --symbol-division 2 --min-max-temperature`
 
 ![MeteoSwiss Style](doc/example1.png)
 
 #### Example 2
-`python3 meteoswissForecast.py -z 8001 -f myForecast.png --days-to-show 3 --time-division 2 --width 1200 --height 300 --min-max-temperature --dark-mode --locale de_DE.utf8 --compact-time-format`
+`python3 meteoswissForecast.py -z 8001 -f myForecast.png -m meta.json --days-to-show 3 --time-division 2 --width 1200 --height 300 --min-max-temperature --dark-mode --locale de_DE.utf8 --date-format="%A, %-d. %b" --time-format="%H"`
 
 ![MeteoSwiss Style](doc/example2.png)
 
