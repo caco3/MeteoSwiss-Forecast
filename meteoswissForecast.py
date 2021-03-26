@@ -600,6 +600,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logLevel)
     logging.getLogger("matplotlib").setLevel(logging.WARNING) # hiding the debug messages from the matplotlib
+    logging.getLogger("PIL").setLevel(logging.WARNING) # hiding the debug messages from the PIL
 
     meteoSwissForecast = MeteoSwissForecast(zipCode=args.zip_code, utcOffset=args.utc_offset)
     dataUrl = meteoSwissForecast.getDataUrl()
