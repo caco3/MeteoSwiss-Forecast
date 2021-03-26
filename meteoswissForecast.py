@@ -57,7 +57,10 @@ class MeteoSwissForecast:
         self.zipCode = zipCode
 
         logging.debug("Using data for location with zip code %d" % self.zipCode)
-        self.cityName = self.getCityName()
+        try:
+            self.cityName = self.getCityName()
+        except Exception as e:
+            raise Exception("Failed to get City name: %s" % e)
 
         if not utcOffset:
             # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
@@ -82,14 +85,21 @@ class MeteoSwissForecast:
         indexUrl = self.domain + "/" + self.indexPage
         logging.debug("The index URL is: %s" % indexUrl)
         req = Request(indexUrl, headers={'User-Agent': 'Mozilla/5.0'})
-        indexPageContent = str(urlopen(req).read())
+        try:
+            indexPageContent = str(urlopen(req).read())
+        except Exception as e:
+            raise Exception("Failed to fetch index URL (\"%s\"): \"%s\"" % (indexUrl, e))
 
         dataUrlStartPosition = indexPageContent.find(self.dataUrlPrefix)
         dataUrlEndPosition = indexPageContent.find(self.dataUrlSuffix, dataUrlStartPosition)
+        if dataUrlStartPosition == -1:
+            raise Exception("Failed to find Data URL prefix (\"%s\") in index URL (\"%s\")" % (self.dataUrlPrefix, indexUrl))
+        if dataUrlEndPosition == -1:
+            raise Exception("Failed to find Data URL suffix (\"%s\") in index Page (\"%s\")" % (self.dataUrlSuffix, indexUrl))
 
         dataUrl = self.domain + "/" + indexPageContent[dataUrlStartPosition:dataUrlEndPosition - 6] + str(self.zipCode) + "00" + self.dataUrlSuffix
 
-        logging.debug("The data URL is: %s" % dataUrl)
+        logging.debug("The data URL is: \"%s\"" % dataUrl)
         return dataUrl
 
 
@@ -101,7 +111,11 @@ class MeteoSwissForecast:
         locationUrl = self.domain + self.locationUrlPrefix + str(self.zipCode) + "00" + self.locationUrlSuffix
         logging.debug("Downloading data from %s..." % locationUrl)
         req = Request(locationUrl, headers={'User-Agent': 'Mozilla/5.0'})
-        locationDataPlain = (urlopen(req).read()).decode('utf-8')
+        try:
+            locationDataPlain = (urlopen(req).read()).decode('utf-8')
+        except Exception as e:
+            raise Exception("Failed to fetch location URL (\"%s\"): \"%s\"" % (locationUrl, e))
+
         logging.debug("Download completed")
         locationData = json.loads(locationDataPlain)
 
@@ -129,7 +143,10 @@ class MeteoSwissForecast:
         self.data["dataUrl"] = dataUrl
         logging.debug("Downloading data from %s..." % dataUrl)
         req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
-        forcastDataPlain = (urlopen(req).read()).decode('utf-8')
+        try:
+            forcastDataPlain = (urlopen(req).read()).decode('utf-8')
+        except Exception as e:
+            raise Exception("Failed to fetch data URL (%s): %s" % (dataUrl, e))
 
         logging.debug("Download completed")
         forecastData = json.loads(forcastDataPlain)
@@ -620,9 +637,24 @@ if __name__ == '__main__':
     logging.getLogger("matplotlib").setLevel(logging.WARNING) # hiding the debug messages from the matplotlib
     logging.getLogger("PIL").setLevel(logging.WARNING) # hiding the debug messages from the PIL
 
-    meteoSwissForecast = MeteoSwissForecast(zipCode=args.zip_code, utcOffset=args.utc_offset)
-    dataUrl = meteoSwissForecast.getDataUrl()
-    forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
+    try:
+        meteoSwissForecast = MeteoSwissForecast(zipCode=args.zip_code, utcOffset=args.utc_offset)
+    except Exception as e:
+        logging.error("An error occurred: %s" % e)
+        exit(1)
+
+    try:
+        dataUrl = meteoSwissForecast.getDataUrl()
+    except Exception as e:
+        logging.error("An error occurred: %s" % e)
+        exit(1)
+
+    try:
+        forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
+    except Exception as e:
+        logging.error("An error occurred: %s" % e)
+        exit(1)
+
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
