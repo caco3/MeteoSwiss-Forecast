@@ -30,6 +30,8 @@ class myHandler(BaseHTTPRequestHandler):
             self.returnMarkedImage(query)
         elif parsed_url.path == "/get-metadata":
             self.returnMetaData(query)
+        elif parsed_url.path == "/get-next-rain-time":
+            self.returnNextRain(query)
         elif parsed_url.path == "/":
             self.showHelp(False)
         else:
@@ -198,8 +200,45 @@ class myHandler(BaseHTTPRequestHandler):
             self.wfile.write(f)
         except Exception as e:
             self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
-            
-            
+
+
+    def returnNextRain(self, query):
+        try:
+            if 'zip-code' in query:
+                zipCode = int(query['zip-code'][0])
+            else:
+                self.showHelp()
+                return
+
+        except Exception as e:
+            self.wfile.write(bytes('{ "error": "%s" }' % e, 'utf-8'))
+            return
+
+        self.send_header('Content-type','application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        try:
+            try:
+                meteoSwissForecast = MeteoSwissForecast(zipCode, utcOffset)
+            except Exception as e:
+                print(e)
+                if "404" in str(e):
+                    self.wfile.write(b'{ "error": "Unknown Zip Code" }')
+                else:
+                    self.wfile.write(bytes('{ "error": "%s" }' % e, 'utf-8'))
+                return
+
+            forecastData = meteoSwissForecast.importForecastData(forecastFile + str(zipCode) + ".json")
+            nextRain, nextPossibleRain = meteoSwissForecast.getNextRain(forecastData)
+            jsonData = '{ "nextRain": "' + str(nextRain) + '", "nextPossibleRain": "' + str(nextPossibleRain) + '" }'
+            self.wfile.write(bytes(jsonData, 'utf-8'))
+        except Exception as e:
+            if "No such file" in str(e):
+                self.wfile.write(b'{ "error": "You first have to call generate" }')
+            else:
+                self.wfile.write(bytes('{ "error": "%s" }' % e, 'utf-8'))
+
+
     def generate(self, query):
         logLevel = logging.INFO
                 
@@ -322,10 +361,12 @@ class myHandler(BaseHTTPRequestHandler):
         print("Generating Forecast...", flush=True)
         
         forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
+        meteoSwissForecast.exportForecastData(forecastData, forecastFile + str(zipCode) + ".json")
         meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, writeMetaData=(metaDataFile + str(zipCode) + ".json"))
         
         print("Image got saved as " + forecastFile + str(zipCode) + ".png")
         print("Metadata got saved as " + metaDataFile + str(zipCode) + ".json")
+        print("Forecast data got saved as " + forecastFile + str(zipCode) + ".json")
 
         self.wfile.write(b"Done<br>\n")
         print("Done", flush=True)       
@@ -392,4 +433,4 @@ try:
 except KeyboardInterrupt:
     print ('^C received, shutting down the web server')
     server.socket.close()
-
+    
