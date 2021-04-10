@@ -223,7 +223,8 @@ class MeteoSwissForecast:
         # We replace it by NaN
         for key, data in self.data.items():
             try:
-                self.data[key] =  [np.nan if v is None else v for v in self.data[key]]
+                if key != "dataUrl":
+                    self.data[key] =  [np.nan if v is None else v for v in self.data[key]]
             except:
                 pass
 
@@ -315,7 +316,7 @@ class MeteoSwissForecast:
     def exportForecastData(self, forecastData, outputFilename):
         with open(outputFilename, 'w') as outfile:
             json.dump(forecastData, outfile, indent=2)
-        print("Forecast data got exported to %s" % outputFilename)
+        logging.debug("Forecast data got exported to %s" % outputFilename)
 
 
     """
@@ -325,6 +326,27 @@ class MeteoSwissForecast:
         with open(inputFilename) as forecastData:
             return json.load(forecastData)
 
+
+    def getNextRain(self, forecastData):
+        timestampNow = time.mktime(time.gmtime()) + self.utcOffset * 3600
+
+        nextRain = 0
+        for i in range(len(forecastData['rainfall'])):
+            if forecastData['rainfall'][i] > 0:
+                t = int((forecastData['timestamps'][i] - timestampNow) / 3600) - 1
+                if t > 0:
+                    nextRain = t
+                    break
+
+        nextPossibleRain = 0
+        for i in range(len(forecastData['rainfallVarianceMax'])):
+            if forecastData['rainfallVarianceMax'][i] > 0:
+                t = int((forecastData['timestamps'][i] - timestampNow) / 3600) - 1
+                if t > 0:
+                    nextPossibleRain = t
+                    break
+
+        return nextRain, nextPossibleRain
 
 
     """
@@ -656,6 +678,6 @@ if __name__ == '__main__':
         exit(1)
 
     #pprint.pprint(forecastData)
-    #meteoSwissForecast.exportForecastData(forecastData, "./forecast.json")
+    #meteoSwissForecast.exportForecastData(forecastData, "./forecast_" + args.zip_code + ".json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, writeMetaData=args.meta.name)
