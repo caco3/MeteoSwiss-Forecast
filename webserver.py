@@ -30,7 +30,7 @@ class myHandler(BaseHTTPRequestHandler):
             self.returnMarkedImage(query)
         elif parsed_url.path == "/get-metadata":
             self.returnMetaData(query)
-        elif parsed_url.path == "/get-next-rain-time":
+        elif parsed_url.path == "/get-next-rain":
             self.returnNextRain(query)
         elif parsed_url.path == "/":
             self.showHelp(False)
@@ -110,6 +110,16 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
         self.wfile.write(b"</table>\n")
 
+        
+        self.wfile.write(b"<h2>Get Hours until Next Rain</h2>\n")
+        url = "get-next-rain?zip-code=8001"
+        link = "<a href=\"" + url + "\">" + url + "</a>\n"
+        self.wfile.write(bytes(link, 'utf-8'))
+        self.wfile.write(b"<h3>Parameters</h3>\n")
+        self.wfile.write(b"<table>\n")
+        self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
+        self.wfile.write(b"</table>\n")
+    
     
     def getForecastImage(self, query):
         try:
