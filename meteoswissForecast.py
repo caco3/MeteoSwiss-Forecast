@@ -330,19 +330,20 @@ class MeteoSwissForecast:
     def getNextRain(self, forecastData):
         timestampNow = time.mktime(time.gmtime()) + self.utcOffset * 3600
 
-        nextRain = 0
+        nextRain = None
         for i in range(len(forecastData['rainfall'])):
             if forecastData['rainfall'][i] > 0:
-                t = int((forecastData['timestamps'][i] - timestampNow) / 3600) - 1
-                if t > 0:
+                t = math.floor((forecastData['timestamps'][i] - timestampNow) / 3600)
+                if t > -1: # now or in future
                     nextRain = t
                     break
 
-        nextPossibleRain = 0
+        nextPossibleRain = None
         for i in range(len(forecastData['rainfallVarianceMax'])):
+            print(i, forecastData['timestamps'][i], forecastData['formatedTime'][i], forecastData['rainfallVarianceMax'][i])
             if forecastData['rainfallVarianceMax'][i] > 0:
-                t = int((forecastData['timestamps'][i] - timestampNow) / 3600) - 1
-                if t > 0:
+                t = math.floor((forecastData['timestamps'][i] - timestampNow) / 3600)
+                if t > -1: # now or in future
                     nextPossibleRain = t
                     break
 
