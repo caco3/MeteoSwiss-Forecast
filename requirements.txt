@@ -1,6 +1,6 @@
 matplotlib==3.3.3
 numpy==1.18.5
 requests==2.23.0
-urllib3==1.25.8
+urllib3==1.26.5
 pytz==2020.1
 pillow==8.1.1
