@@ -3,4 +3,4 @@ numpy==1.18.5
 requests==2.23.0
 urllib3==1.26.5
 pytz==2020.1
-pillow==8.2.0
+pillow==8.3.2
