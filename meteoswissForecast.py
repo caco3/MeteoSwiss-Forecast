@@ -25,6 +25,10 @@ import json
 #import tempfile
 
 
+# Meteoswiss only provides the data of the up to 7 days.
+maximumNumberOfDays = 7
+
+
 # Returns the current UTC offset as integer value.
 def getCurrentUtcOffset():
     utcOffset = datetime.datetime.now(pytz.timezone('Europe/Zurich')).strftime('%z')
@@ -163,6 +167,11 @@ class MeteoSwissForecast:
         logging.debug("Download completed")
         forecastData = json.loads(forcastDataPlain)
 
+        # Meteoswiss only provides the data of the up to 7 days.
+        if daysToUse > maximumNumberOfDays:
+            daysToUse = maximumNumberOfDays
+            logging.warning("Limiting days to be shown to %d days!" % maximumNumberOfDays)
+
         self.days = len(forecastData)
         logging.debug("The forecast contains data for %d days" % self.days)
         if daysToUse != None:
@@ -201,6 +210,11 @@ class MeteoSwissForecast:
                     logging.warning("For day %d only data of %d hours are provided!" % (day, hour))
                     timestamp = timestamps[-1] + 3600 # Use timstamp of last hour and add 3600 seconds
                 timestamps.append(timestamp)
+
+        if self.days < maximumNumberOfDays: # We can also add the first hour of the next day
+            timestamp = forecastData[self.days]["rainfall"][0][0]
+            timestamp = int(int(timestamp) / 1000) + self.utcOffset * 3600
+            timestamps.append(timestamp)
 
         dayIndex = 0
         for timestamp in timestamps:
@@ -260,6 +274,10 @@ class MeteoSwissForecast:
                 except:
                     logging.warning("For day %d only %s data of %d hours are provided!" % (day, topic, hour))
                     topicData.append(None)
+
+        if days < maximumNumberOfDays: # We can also add the first hour of the next day
+            topicData.append(forecastData[day+1][topic][0][index])
+
         return topicData
 
 
@@ -275,6 +293,10 @@ class MeteoSwissForecast:
                 except:
                     logging.warning("For day %d only %s data of %d hours are provided!" % (day, topic, hour))
                     topicData.append(None)
+
+        if days < maximumNumberOfDays: # We can also add the first hour of the next day
+            topicData.append(forecastData[day+1][topic][subField][0][index])
+
         return topicData
 
 
@@ -293,6 +315,11 @@ class MeteoSwissForecast:
                     logging.warning("For day %d only %s data of %d hours are provided!" % (day, topic, hour))
                     topicDataMin.append(None)
                     topicDataMax.append(None)
+
+        if days < maximumNumberOfDays: # We can also add the first hour of the next day
+            topicDataMin.append(forecastData[day+1][topic][0][indexMin])
+            topicDataMax.append(forecastData[day+1][topic][0][indexMax])
+
         return [topicDataMin, topicDataMax]
 
 
@@ -307,6 +334,12 @@ class MeteoSwissForecast:
                 timestamp = forecastData[day][topic][index][indexTS]
                 timestamps.append(int(int(timestamp) / 1000) + self.utcOffset * 3600)
                 ids.append(forecastData[day][topic][index][indexId])
+
+        if days < maximumNumberOfDays: # We can also add the first hour of the next day
+            timestamp = forecastData[day+1][topic][index][indexTS]
+            timestamps.append(int(int(timestamp) / 1000) + self.utcOffset * 3600)
+            ids.append(forecastData[day+1][topic][index][indexId])
+
         return [timestamps, ids]
 
 
@@ -450,9 +483,9 @@ class MeteoSwissForecast:
         rainAxis.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
 
         # Rain color bar as y axis
-        plt.xlim(data["timestamps"][0], data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]))
+        plt.xlim(data["timestamps"][0], data["timestamps"][-2] + (data["timestamps"][1] - data["timestamps"][0]))
         pixelToRainX = 1 / xPixelsPerDay * (data["timestamps"][23] - data["timestamps"][0])
-        x = data["timestamps"][-1] + (data["timestamps"][1] - data["timestamps"][0]) # end of x
+        x = data["timestamps"][-2] + (data["timestamps"][1] - data["timestamps"][0]) # end of x
         w = 7 * pixelToRainX
 
         for i in range(0, len(self.rainColorSteps)):
@@ -547,6 +580,18 @@ class MeteoSwissForecast:
                         minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
                         minTemperatureOfDay["xpixel"] = (data["timestamps"][day * 24 + h] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
                         minTemperatureOfDay["ypixel"] = (data["temperature"][day * 24 + h] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+
+                if day < maximumNumberOfDays-1: # We can also add the first hour of the next day (except on the last day)
+                    if data["temperature"][(day + 1) * 24] > maxTemperatureOfDay["data"]:
+                        maxTemperatureOfDay["data"] = data["temperature"][(day + 1) * 24]
+                        maxTemperatureOfDay["timestamp"] = data["timestamps"][(day + 1) * 24]
+                        maxTemperatureOfDay["xpixel"] = (data["timestamps"][(day + 1) * 24] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        maxTemperatureOfDay["ypixel"] = (data["temperature"][(day + 1) * 24] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if data["temperature"][(day + 1) * 24] < minTemperatureOfDay["data"]:
+                        minTemperatureOfDay["data"] = data["temperature"][(day + 1) * 24]
+                        minTemperatureOfDay["timestamp"] = data["timestamps"][(day + 1) * 24]
+                        minTemperatureOfDay["xpixel"] = (data["timestamps"][(day + 1) * 24] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        minTemperatureOfDay["ypixel"] = (data["temperature"][(day + 1) * 24] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
 
                 # Circles
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
