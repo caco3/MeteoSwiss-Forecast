@@ -245,6 +245,14 @@ class MeteoSwissForecast:
         self.data["symbols"] = symbols
         self.data["symbolsTimestamps"] = symbolsTimestamps
 
+        # Testing
+        #self.data["temperature"][-1] = -1
+        #self.data["temperature"][0] = -1
+        #try:
+            #self.data["temperature"][48] = -1
+        #except:
+            #pass
+
         # Sometimes the data contains None for some fields
         # We replace it by NaN
         for key, data in self.data.items():
