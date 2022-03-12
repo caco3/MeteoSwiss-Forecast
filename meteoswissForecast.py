@@ -560,80 +560,91 @@ class MeteoSwissForecast:
 
 
         logging.debug("Adding various additional information to the graph...")
-        # Mark min/max temperature per day
+
+        # Find min/max for each day
+        maxTemperatureOfDay = [None] * data["noOfDays"]
+        minTemperatureOfDay = [None] * data["noOfDays"]
         if minMaxTemperature:
             da = DrawingArea(2, 2, 0, 0)
             da.add_artist(Circle((1, 1), 4, color=self.temperatureColor, fc="white", lw=2))
             for day in range(0, data["noOfDays"]):
-                dayXPixelMin = day * xPixelsPerDay
-                dayXPixelMax = (day + 1) * xPixelsPerDay - 1
-                maxTemperatureOfDay = {"data": -100, "timestamp": 0}
-                minTemperatureOfDay = {"data": +100, "timestamp": 0}
+                maxTemperatureOfDay[day] = {"data": -100, "timestamp": 0}
+                minTemperatureOfDay[day] = {"data": +100, "timestamp": 0}
                 for h in range(0, 24):
                     timestampOfHour = data["timestamps"][day * 24 + h]
                     temperatureOfHour = data["temperature"][day * 24 + h]
-                    if temperatureOfHour > maxTemperatureOfDay["data"]:
-                        maxTemperatureOfDay["data"] = temperatureOfHour
-                        maxTemperatureOfDay["timestamp"] = timestampOfHour
-                        maxTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        maxTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
-                    if temperatureOfHour < minTemperatureOfDay["data"]:
-                        minTemperatureOfDay["data"] = temperatureOfHour
-                        minTemperatureOfDay["timestamp"] = timestampOfHour
-                        minTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        minTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if temperatureOfHour > maxTemperatureOfDay[day]["data"]:
+                        maxTemperatureOfDay[day]["data"] = temperatureOfHour
+                        maxTemperatureOfDay[day]["timestamp"] = timestampOfHour
+                        maxTemperatureOfDay[day]["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        maxTemperatureOfDay[day]["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if temperatureOfHour < minTemperatureOfDay[day]["data"]:
+                        minTemperatureOfDay[day]["data"] = temperatureOfHour
+                        minTemperatureOfDay[day]["timestamp"] = timestampOfHour
+                        minTemperatureOfDay[day]["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        minTemperatureOfDay[day]["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
 
                 if day < maximumNumberOfDays-1: # We can also add the first hour of the next day (except on the last day)
                     timestampOfHour = data["timestamps"][(day + 1) * 24]
                     temperatureOfHour = data["temperature"][(day + 1) * 24]
-                    if temperatureOfHour > maxTemperatureOfDay["data"]:
-                        maxTemperatureOfDay["data"] = temperatureOfHour
-                        maxTemperatureOfDay["timestamp"] = timestampOfHour
-                        maxTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        maxTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
-                    if temperatureOfHour < minTemperatureOfDay["data"]:
-                        minTemperatureOfDay["data"] = temperatureOfHour
-                        minTemperatureOfDay["timestamp"] = timestampOfHour
-                        minTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        minTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if temperatureOfHour > maxTemperatureOfDay[day]["data"]:
+                        maxTemperatureOfDay[day]["data"] = temperatureOfHour
+                        maxTemperatureOfDay[day]["timestamp"] = timestampOfHour
+                        maxTemperatureOfDay[day]["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        maxTemperatureOfDay[day]["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if temperatureOfHour < minTemperatureOfDay[day]["data"]:
+                        minTemperatureOfDay[day]["data"] = temperatureOfHour
+                        minTemperatureOfDay[day]["timestamp"] = timestampOfHour
+                        minTemperatureOfDay[day]["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        minTemperatureOfDay[day]["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
 
-                # Circles
-                temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
-                temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xybox=(minTemperatureOfDay["timestamp"], minTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
-                # Max Temperature Labels
-                text = str(int(round(maxTemperatureOfDay["data"], 0))) + "°C"
-                f = plt.figure(1) # Temporary figure to get the dimensions of the text label
-                t = plt.text(0, 0, text, weight='bold')
-                temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
-                plt.figure(0) # Select Main figure again
+            # Mark min/max temperature per day
+            for day in range(0, data["noOfDays"]):
+                dayXPixelMin = day * xPixelsPerDay
+                dayXPixelMax = (day + 1) * xPixelsPerDay - 1
 
-                # Check if text is fully within the day (x axis)
-                if maxTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
-                    maxTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
-                if maxTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
-                    maxTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+                if day == data["noOfDays"]-1 or maxTemperatureOfDay[day]["xpixel"] != maxTemperatureOfDay[day+1]["xpixel"]: # Prevent multiple circles/lables for same spot (00:00/24:00)
+                    # Max Temperature Circles
+                    temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay[day]["timestamp"], maxTemperatureOfDay[day]["data"]), xybox=(maxTemperatureOfDay[day]["timestamp"], maxTemperatureOfDay[day]["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
 
-                temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(maxTemperatureOfDay["xpixel"], maxTemperatureOfDay["ypixel"] + 8),
-                                                 ha="center", va="bottom", color=colors["temperature-label"], weight='bold',
-                                                 path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
+                    # Max Temperature Labels
+                    text = str(int(round(maxTemperatureOfDay[day]["data"], 0))) + "°C"
+                    f = plt.figure(1) # Temporary figure to get the dimensions of the text label
+                    t = plt.text(0, 0, text, weight='bold')
+                    temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+                    plt.figure(0) # Select Main figure again
 
-                # Min Temperature Labels
-                text = str(int(round(minTemperatureOfDay["data"], 0))) + "°C"
-                f = plt.figure(1) # Temporary figure to get the dimensions of the text label
-                t = plt.text(0, 0, text, weight='bold')
-                temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
-                plt.figure(0) # Select Main figure again
+                    # Check if text is fully within the day (x axis)
+                    if maxTemperatureOfDay[day]["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
+                        maxTemperatureOfDay[day]["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
+                    if maxTemperatureOfDay[day]["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
+                        maxTemperatureOfDay[day]["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
 
-                # Check if text is fully within the day (x axis)
-                if minTemperatureOfDay["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
-                    minTemperatureOfDay["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
-                if minTemperatureOfDay["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
-                    minTemperatureOfDay["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+                    temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(maxTemperatureOfDay[day]["xpixel"], maxTemperatureOfDay[day]["ypixel"] + 8),
+                                                    ha="center", va="bottom", color=colors["temperature-label"], weight='bold',
+                                                    path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
 
-                temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(minTemperatureOfDay["xpixel"], minTemperatureOfDay["ypixel"] - 12),
-                                                 ha="center", va="top", color=colors["temperature-label"], weight='bold',
-                                                 path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
+                if day == data["noOfDays"]-1 or minTemperatureOfDay[day]["xpixel"] != minTemperatureOfDay[day+1]["xpixel"]: # Prevent multiple circles/lables for same spot (00:00/24:00)
+                    # Min Temperature Circles
+                    temperatureVarianceAxis.add_artist(AnnotationBbox(da, (minTemperatureOfDay[day]["timestamp"], minTemperatureOfDay[day]["data"]), xybox=(minTemperatureOfDay[day]["timestamp"], minTemperatureOfDay[day]["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
+
+                    # Min Temperature Labels
+                    text = str(int(round(minTemperatureOfDay[day]["data"], 0))) + "°C"
+                    f = plt.figure(1) # Temporary figure to get the dimensions of the text label
+                    t = plt.text(0, 0, text, weight='bold')
+                    temporaryLabel = t.get_window_extent(renderer=f.canvas.get_renderer())
+                    plt.figure(0) # Select Main figure again
+
+                    # Check if text is fully within the day (x axis)
+                    if minTemperatureOfDay[day]["xpixel"] - temporaryLabel.width / 2 < dayXPixelMin: # To far left
+                        minTemperatureOfDay[day]["xpixel"] = dayXPixelMin + temporaryLabel.width / 2 + self.textShadowWidth / 2
+                    if minTemperatureOfDay[day]["xpixel"] + temporaryLabel.width / 2 > dayXPixelMax: # To far right
+                        minTemperatureOfDay[day]["xpixel"] = dayXPixelMax - temporaryLabel.width / 2 - self.textShadowWidth / 2
+
+                    temperatureVarianceAxis.annotate(text, xycoords=('axes pixels'), xy=(minTemperatureOfDay[day]["xpixel"], minTemperatureOfDay[day]["ypixel"] - 12),
+                                                    ha="center", va="top", color=colors["temperature-label"], weight='bold',
+                                                    path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
 
         # Print day names
         for day in range(0, data["noOfDays"]):
