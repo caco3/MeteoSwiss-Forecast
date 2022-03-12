@@ -69,3 +69,7 @@ https://hub.docker.com/r/caco3x/meteoswiss-forecast
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
 
 The scripts are provided under the terms of the GPL V3.
+
+# TODO
+ - Update Images in readme
+ - Refactor code, split data extractor and plot generator code
