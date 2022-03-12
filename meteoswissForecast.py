@@ -570,28 +570,32 @@ class MeteoSwissForecast:
                 maxTemperatureOfDay = {"data": -100, "timestamp": 0}
                 minTemperatureOfDay = {"data": +100, "timestamp": 0}
                 for h in range(0, 24):
-                    if data["temperature"][day * 24 + h] > maxTemperatureOfDay["data"]:
-                        maxTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
-                        maxTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
-                        maxTemperatureOfDay["xpixel"] = (data["timestamps"][day * 24 + h] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        maxTemperatureOfDay["ypixel"] = (data["temperature"][day * 24 + h] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
-                    if data["temperature"][day * 24 + h] < minTemperatureOfDay["data"]:
-                        minTemperatureOfDay["data"] = data["temperature"][day * 24 + h]
-                        minTemperatureOfDay["timestamp"] = data["timestamps"][day * 24 + h]
-                        minTemperatureOfDay["xpixel"] = (data["timestamps"][day * 24 + h] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        minTemperatureOfDay["ypixel"] = (data["temperature"][day * 24 + h] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    timestampOfHour = data["timestamps"][day * 24 + h]
+                    temperatureOfHour = data["temperature"][day * 24 + h]
+                    if temperatureOfHour > maxTemperatureOfDay["data"]:
+                        maxTemperatureOfDay["data"] = temperatureOfHour
+                        maxTemperatureOfDay["timestamp"] = timestampOfHour
+                        maxTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        maxTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if temperatureOfHour < minTemperatureOfDay["data"]:
+                        minTemperatureOfDay["data"] = temperatureOfHour
+                        minTemperatureOfDay["timestamp"] = timestampOfHour
+                        minTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        minTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
 
                 if day < maximumNumberOfDays-1: # We can also add the first hour of the next day (except on the last day)
-                    if data["temperature"][(day + 1) * 24] > maxTemperatureOfDay["data"]:
-                        maxTemperatureOfDay["data"] = data["temperature"][(day + 1) * 24]
-                        maxTemperatureOfDay["timestamp"] = data["timestamps"][(day + 1) * 24]
-                        maxTemperatureOfDay["xpixel"] = (data["timestamps"][(day + 1) * 24] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        maxTemperatureOfDay["ypixel"] = (data["temperature"][(day + 1) * 24] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
-                    if data["temperature"][(day + 1) * 24] < minTemperatureOfDay["data"]:
-                        minTemperatureOfDay["data"] = data["temperature"][(day + 1) * 24]
-                        minTemperatureOfDay["timestamp"] = data["timestamps"][(day + 1) * 24]
-                        minTemperatureOfDay["xpixel"] = (data["timestamps"][(day + 1) * 24] - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
-                        minTemperatureOfDay["ypixel"] = (data["temperature"][(day + 1) * 24] - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    timestampOfHour = data["timestamps"][(day + 1) * 24]
+                    temperatureOfHour = data["temperature"][(day + 1) * 24]
+                    if temperatureOfHour > maxTemperatureOfDay["data"]:
+                        maxTemperatureOfDay["data"] = temperatureOfHour
+                        maxTemperatureOfDay["timestamp"] = timestampOfHour
+                        maxTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        maxTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
+                    if temperatureOfHour < minTemperatureOfDay["data"]:
+                        minTemperatureOfDay["data"] = temperatureOfHour
+                        minTemperatureOfDay["timestamp"] = timestampOfHour
+                        minTemperatureOfDay["xpixel"] = (timestampOfHour - data["timestamps"][0]) / (24*3600) * xPixelsPerDay
+                        minTemperatureOfDay["ypixel"] = (temperatureOfHour - temperatureScaleMin) / (temperatureScaleMax - temperatureScaleMin) * height
 
                 # Circles
                 temperatureVarianceAxis.add_artist(AnnotationBbox(da, (maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xybox=(maxTemperatureOfDay["timestamp"], maxTemperatureOfDay["data"]), xycoords='data', boxcoords=("data", "data"), frameon=False))
