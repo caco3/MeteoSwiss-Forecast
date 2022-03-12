@@ -8,6 +8,8 @@ import os
 import json
 import datetime, pytz
 
+# Meteoswiss only provides the data of the up to 7 days.
+maximumNumberOfDays = 7
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -72,7 +74,7 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"<h3>Parameters</h3>\n")
         self.wfile.write(b"<table>\n")
         self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
-        self.wfile.write(b"<tr><td><b>days-to-show:</b></td></td><td>Number of days to show (1..8).</td><td>Optional, default: 8</td></tr>\n")
+        self.wfile.write(b"<tr><td><b>days-to-show:</b></td></td><td>Number of days to show (1..%d).</td><td>Optional, default: %d</td></tr>\n" % (maximumNumberOfDays, maximumNumberOfDays))
         self.wfile.write(b"<tr><td><b>height:</b></td><td>Height of the graph in pixel.</td><td>Optional, default: 300</td></tr>\n")
         self.wfile.write(b"<tr><td><b>width:</b></td><td>Width of the graph in pixel.</td><td>Optional, default: 1920</td></tr>\n")
         self.wfile.write(b"<tr><td><b>time-divisions:</b></td><td>Distance in hours between time labels.</td><td>Optional, default: 6</td></tr>\n")
@@ -282,8 +284,8 @@ class myHandler(BaseHTTPRequestHandler):
                 
             if 'days-to-show' in query:
                 daysToShow = int(query['days-to-show'][0])
-                if daysToShow < 1 or daysToShow > 8:
-                    self.wfile.write(bytes("days-to-show must be 1..8!"))
+                if daysToShow < 1 or daysToShow > maximumNumberOfDays:
+                    self.wfile.write(bytes("days-to-show must be 1..%d!" % maximumNumberOfDays))
                     return
             else:
                 daysToShow = 2
