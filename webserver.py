@@ -274,94 +274,112 @@ class myHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type','text/html')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        
+
+        parameter = None
+
         try:
-            if 'zip-code' in query:
-                zipCode = int(query['zip-code'][0])
+            parameter = 'zip-code'
+            if parameter in query:
+                zipCode = int(query[parameter][0])
             else:
                 self.showHelp()
                 return
                 
-            if 'days-to-show' in query:
-                daysToShow = int(query['days-to-show'][0])
+            parameter = 'days-to-show'
+            if parameter in query:
+                daysToShow = int(query[parameter][0])
                 if daysToShow < 1 or daysToShow > maximumNumberOfDays:
-                    self.wfile.write(bytes("days-to-show must be 1..%d!" % maximumNumberOfDays))
+                    self.wfile.write(bytes("%s must be 1..%d!" % (parameter, maximumNumberOfDays), 'utf-8'))
                     return
             else:
                 daysToShow = 2
                     
-            if 'height' in query:
-                height = int(query['height'][0])
+            parameter = 'height'
+            if parameter in query:
+                height = int(query[parameter][0])
             else:
                 height = 300
-                    
-            if 'width' in query:
-                width = int(query['width'][0])
+
+            parameter = 'width'
+            if parameter in query:
+                width = int(query[parameter][0])
             else:
                 width = 1920
-                    
-            if 'time-divisions' in query:
-                timeDivisions = int(query['time-divisions'][0])
+
+            parameter = 'time-divisions'
+            if parameter in query:
+                timeDivisions = int(query[parameter][0])
             else:
                 timeDivisions = 6
-                    
-            if 'use-dark-mode' in query:
-                darkMode = str2bool(query['use-dark-mode'][0])
+
+            parameter = 'use-dark-mode'
+            if parameter in query:
+                darkMode = str2bool(query[parameter][0])
             else:
                 darkMode = False
                     
-            if 'font-size' in query:
-                fontSize = int(query['font-size'][0])
+            parameter = 'font-size'
+            if parameter in query:
+                fontSize = int(query[parameter][0])
             else:
                 fontSize = 12
 
-            if 'show-min-max-temperatures' in query:
-                minMaxTemperatures = str2bool(query['show-min-max-temperatures'][0])
+            parameter = 'show-min-max-temperatures'
+            if parameter in query:
+                minMaxTemperatures = str2bool(query[parameter][0])
             else:
                 minMaxTemperatures = False
             
-            if 'show-rain-variance' in query:
-                rainVariance = str2bool(query['show-rain-variance'][0])
+            parameter = 'show-rain-variance'
+            if parameter in query:
+                rainVariance = str2bool(query[parameter][0])
             else:
                 rainVariance = False
             
-            if 'locale' in query:
-                locale = query['locale'][0]
+            parameter = 'locale'
+            if parameter in query:
+                locale = query[parameter][0]
             else:
                 locale = "en_US.utf8"
             
-            if 'utc-offset' in query:
-                utcOffset = query['utc-offset'][0]
+            parameter = 'utc-offset'
+            if parameter in query:
+                utcOffset = query[parameter][0]
             else:
                 utcOffset = getCurrentUtcOffset()
 
-            if 'date-format' in query:
-                dateFormat = query['date-format'][0]
+            parameter = 'date-format'
+            if parameter in query:
+                dateFormat = query[parameter][0]
             else:
                 dateFormat = "%A, %-d. %B"
             
-            if 'time-format' in query:
-                timeFormat = query['time-format'][0]
+            parameter = 'time-format'
+            if parameter in query:
+                timeFormat = query[parameter][0]
             else:
                 timeFormat = "%H:%M"
             
-            if 'symbol-zoom' in query:
-                symbolZoom = float(query['symbol-zoom'][0])
+            parameter = 'symbol-zoom'
+            if parameter in query:
+                symbolZoom = float(query[parameter][0])
             else:
                 symbolZoom = 1.0
             
-            if 'symbol-divisions' in query:
-                symbolDivisions = int(query['symbol-divisions'][0])
+            parameter = 'symbol-divisions'
+            if parameter in query:
+                symbolDivisions = int(query[parameter][0])
             else:
                 symbolDivisions = 1
             
-            if 'show-city-name' in query:
-                cityName = str2bool(query['show-city-name'][0])
+            parameter = 'show-city-name'
+            if parameter in query:
+                cityName = str2bool(query[parameter][0])
             else:
                 cityName = False
             
         except Exception as e:
-            self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
+            self.wfile.write(bytes("An error occurred on parameter \"%s\": %s!" % (parameter, e), 'utf-8'))
             return
 
             
