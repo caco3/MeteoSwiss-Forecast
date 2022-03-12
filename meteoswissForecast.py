@@ -406,7 +406,10 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=None, writeMetaData=None):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=None, writeMetaData=None, progressCallback=None):
+        if progressCallback:
+            progressCallback("0%")
+
         logging.debug("Initializing graph...")
         if darkMode:
             colors = self.colorsDarkMode
@@ -464,7 +467,10 @@ class MeteoSwissForecast:
 
         for i in range(0, len(self.rainColorSteps)):
             rainBars[i] = []
-        
+
+        if progressCallback:
+            progressCallback("20%")
+
         for rain in data["rainfall"]:
             for i in range(0, len(self.rainColorSteps)):
                 if rain > self.rainColorSteps[i]:
@@ -531,6 +537,9 @@ class MeteoSwissForecast:
         rainAxis.add_line(l)
 
 
+        if progressCallback:
+            progressCallback("40%")
+
         # Temperature
         logging.debug("Creating temerature plot...")
         temperatureAxis = rainAxis.twinx()  # instantiate a second axes that shares the same x-axis
@@ -568,6 +577,9 @@ class MeteoSwissForecast:
 
 
         logging.debug("Adding various additional information to the graph...")
+
+        if progressCallback:
+            progressCallback("60%")
 
         # Find min/max for each day
         maxTemperatureOfDay = [None] * data["noOfDays"]
@@ -654,6 +666,9 @@ class MeteoSwissForecast:
                                                     ha="center", va="top", color=colors["temperature-label"], weight='bold',
                                                     path_effects=[path_effects.withStroke(linewidth=self.textShadowWidth, foreground="w")])
 
+        if progressCallback:
+            progressCallback("80%")
+
         # Print day names
         for day in range(0, data["noOfDays"]):
             rainAxis.annotate(data['dayNames'][day], xy=(day * xPixelsPerDay + xPixelsPerDay / 2, -45), xycoords='axes pixels', ha="center", weight='bold', color=colors["x-axis"])
@@ -685,6 +700,8 @@ class MeteoSwissForecast:
             text = fig.text(1-7/width, 1-20/height, self.cityName, color='gray', ha='right', transform=rainAxis.transAxes)
             text.set_path_effects([path_effects.Stroke(linewidth=self.textShadowWidth, foreground='white'), path_effects.Normal()])
 
+        if progressCallback:
+            progressCallback("90%")
 
         # Save the graph in a png image file
         logging.debug("Saving graph to %s" % outputFilename)
@@ -706,6 +723,8 @@ class MeteoSwissForecast:
             with open(writeMetaData, 'w') as metaFile:
                 json.dump(metaData, metaFile)
 
+        if progressCallback:
+            progressCallback("100%")
 
 
 if __name__ == '__main__':

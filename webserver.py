@@ -391,9 +391,17 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.flush()
         print("Generating Forecast...", flush=True)
         
+        def progressCallback(message):
+            try:
+                self.wfile.write(b"%s<br>\n" % bytes(message, 'utf-8'))
+                self.wfile.flush()
+                print(message, flush=True)
+            except:
+                pass
+
         forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
         meteoSwissForecast.exportForecastData(forecastData, forecastFile + str(zipCode) + ".json")
-        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, writeMetaData=(metaDataFile + str(zipCode) + ".json"))
+        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, writeMetaData=(metaDataFile + str(zipCode) + ".json"), progressCallback=progressCallback)
         
         print("Image got saved as " + forecastFile + str(zipCode) + ".png")
         print("Metadata got saved as " + metaDataFile + str(zipCode) + ".json")
