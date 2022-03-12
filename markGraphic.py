@@ -5,6 +5,16 @@ import datetime
 import pytz
 import json
 from PIL import Image, ImageDraw
+import datetime, pytz
+
+
+# Returns the current UTC offset as integer value.
+def getCurrentUtcOffset():
+    utcOffset = datetime.datetime.now(pytz.timezone('Europe/Zurich')).strftime('%z')
+    utcOffset = int(int(utcOffset)/100)
+    print("Current UTC Offset: %d" % utcOffset)
+    return utcOffset
+
 
 def markGraphic(inputFile, outputFile, metaFile, x, y, w, h, fakeTime, test, utcOffset=None):
     logging.debug("X: %d, Y: %d, width: %d, height: %d" % (x, y, w, h))
@@ -29,7 +39,7 @@ def markGraphic(inputFile, outputFile, metaFile, x, y, w, h, fakeTime, test, utc
         d.line([(x, y + h), (x + w, y + h)], fill='red', width=1) # bottom
 
 
-    if not utcOffset:
+    if utcOffset == None:
         # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
         ts = time.time()
         utcOffset = (datetime.datetime.fromtimestamp(ts) -
@@ -37,7 +47,8 @@ def markGraphic(inputFile, outputFile, metaFile, x, y, w, h, fakeTime, test, utc
         utcOffset = int(utcOffset / 3600) # in hours
     else:
         utcOffset = utcOffset
-    logging.debug("UTC offset: %dh" % utcOffset)
+
+    logging.debug("UTC offset: %d" % utcOffset)
     
 
     if metaFile:
@@ -84,8 +95,13 @@ if __name__ == '__main__':
     if args.v:
         logLevel = logging.DEBUG
 
+    if args.utc_offset:
+        utcOffset = args.utc_offset
+    else:
+        utcOffset = getCurrentUtcOffset()
+
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logLevel)
 
-    markGraphic(inputFile=args.i.name, outputFile=args.o.name, metaFile=args.m, x=args.x, y=args.y, w=args.w, h=args.h, utcOffset=args.utc_offset, fakeTime=args.fake_time, test=args.test)
+    markGraphic(inputFile=args.i.name, outputFile=args.o.name, metaFile=args.m, x=args.x, y=args.y, w=args.w, h=args.h, utcOffset=utcOffset, fakeTime=args.fake_time, test=args.test)
     
     

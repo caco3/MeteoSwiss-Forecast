@@ -6,10 +6,19 @@ from markGraphic import markGraphic
 import logging
 import os
 import json
+import datetime, pytz
 
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
+
+
+# Returns the current UTC offset as integer value.
+def getCurrentUtcOffset():
+    utcOffset = datetime.datetime.now(pytz.timezone('Europe/Zurich')).strftime('%z')
+    utcOffset = int(int(utcOffset)/100)
+    print("Current UTC Offset: %d" % utcOffset)
+    return utcOffset
 
 
 # This class will handle any incoming request from
@@ -72,6 +81,7 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"<tr><td><b>show-min-max-temperatures:</b></td><td>Show min/max temperature per day.</td><td>Optional, default: False</td></tr>\n")
         self.wfile.write(b"<tr><td><b>show-rain-variance:</b></td><td>Show rain variance.</td><td>Optional, default: False</td></tr>\n")
         self.wfile.write(b"<tr><td><b>locale:</b></td><td>Used localization of the date, eg. en_US.utf8.</td><td>Optional, default: en_US.utf8</td></tr>\n")
+        self.wfile.write(b"<tr><td><b>utc-offset:</b></td><td>UTC Offset in hours</td><td>Optional, default: Current Offset for Switzerland</td></tr>\n")
         self.wfile.write(b"<tr><td><b>date-format:</b></td><td>Format of the dates, eg. \"%%A, %%-d. %%B\", see https://strftime.org/ for details'.</td><td>Optional, default: %A, %-d. %B</td></tr>\n")
         self.wfile.write(b"<tr><td><b>time-format:</b></td><td>Format of the times, eg. \"%%H:%%M\", see https://strftime.org/ for details'.</td><td>Optional, default: %H:%M</td></tr>\n")
         self.wfile.write(b"<tr><td><b>symbol-zoom:</b></td><td>Scaling of the symbols.</td><td>Optional, default: 1.0</td></tr>\n")
@@ -159,8 +169,12 @@ class myHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
             return
-        
-        
+
+        if 'utc-offset' in query:
+            utcOffset = query['utc-offset']
+        else:
+            utcOffset = getCurrentUtcOffset()
+
         if markTime:
             try:
                 with open(metaDataFile + str(zipCode) + ".json") as metaFile:
@@ -170,6 +184,7 @@ class myHandler(BaseHTTPRequestHandler):
                 return
 
             print(metaData)
+
             markGraphic(inputFile=forecastFile + str(zipCode) + ".png", 
                         outputFile=markedForecastFile + str(zipCode) + ".png", 
                         metaFile=metaDataFile + str(zipCode) + ".json", x=metaData['firstDayX'], y=metaData['firstDayY'],
@@ -227,9 +242,10 @@ class myHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type','application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
+
         try:
             try:
-                meteoSwissForecast = MeteoSwissForecast(zipCode, utcOffset)
+                meteoSwissForecast = MeteoSwissForecast(zipCode, getCurrentUtcOffset())
             except Exception as e:
                 print(e)
                 if "404" in str(e):
@@ -312,6 +328,11 @@ class myHandler(BaseHTTPRequestHandler):
             else:
                 locale = "en_US.utf8"
             
+            if 'utc-offset' in query:
+                utcOffset = query['utc-offset'][0]
+            else:
+                utcOffset = getCurrentUtcOffset()
+
             if 'date-format' in query:
                 dateFormat = query['date-format'][0]
             else:
@@ -354,7 +375,7 @@ class myHandler(BaseHTTPRequestHandler):
         print("Fetching data for %d..." % zipCode, flush=True)
 
         try:
-            meteoSwissForecast = MeteoSwissForecast(zipCode, utcOffset)      
+            meteoSwissForecast = MeteoSwissForecast(zipCode, getCurrentUtcOffset())
         except Exception as e:
             print(e)
             if "404" in str(e):
@@ -392,54 +413,48 @@ class myHandler(BaseHTTPRequestHandler):
         return
 
 
-try:
-    forecastFile = "./data/forecast_"
-    markedForecastFile = "./data/markedForecast_"
-    metaDataFile = "./data/metadata_"
-    
-    utcOffset = 0
-
-    internalPort = 80
-    fallbackPort = 12081 # testing
-    
+if __name__ == '__main__':
     try:
-        if not os.path.exists("./data"):
-            os.makedirs("./data")
-    except OSError:
-        print ("Failed to create data folder")
-except Exception as e:
-    print("An error occurred: %s" % e)
-    exit(1)
+        forecastFile = "./data/forecast_"
+        markedForecastFile = "./data/markedForecast_"
+        metaDataFile = "./data/metadata_"
 
-if 'UTC_OFFSET' in os.environ:
-    utcOffset = int(os.environ['UTC_OFFSET'])
-    print("using UTC Offset from Environment: %d" % utcOffset)
-
-
-# Run the service
-try:
-    print("Meteoswiss Forecast Generator")
-    print("Copyright (c) 2020 by George Ruinelli <george@ruinelli.ch>, https://github.com/caco3/MeteoSwiss-Forecast")
-
-    # Check if we run withing a docker container
-    IN_DOCKER = os.environ.get('AM_I_IN_A_DOCKER_CONTAINER', False)
-    if IN_DOCKER:
-        with open("build-date.txt") as buildDateFile:
-            print("Docker build date:", buildDateFile.read())
-
-    print("Starting...")
-    try:
-        server = HTTPServer(('', internalPort), myHandler)
-    except: # Cannot open port, use test port
-        internalPort = fallbackPort
-        server = HTTPServer(('', internalPort), myHandler)
+        internalPort = 80
+        fallbackPort = 12081 # testing
         
-    print("Listening on port %d" % internalPort)
-    print("Ready to receive requests")
+        try:
+            if not os.path.exists("./data"):
+                os.makedirs("./data")
+        except OSError:
+            print ("Failed to create data folder")
+    except Exception as e:
+        print("An error occurred: %s" % e)
+        exit(1)
 
-    # Wait forever for incoming http requests
-    server.serve_forever()
+    # Run the service
+    try:
+        print("Meteoswiss Forecast Generator")
+        print("Copyright (c) 2020-2022 by George Ruinelli <george@ruinelli.ch>, https://github.com/caco3/MeteoSwiss-Forecast")
 
-except KeyboardInterrupt:
-    print ('^C received, shutting down the web server')
-    server.socket.close()
+        # Check if we run withing a docker container
+        IN_DOCKER = os.environ.get('AM_I_IN_A_DOCKER_CONTAINER', False)
+        if IN_DOCKER:
+            with open("build-date.txt") as buildDateFile:
+                print("Docker build date:", buildDateFile.read())
+
+        print("Starting...")
+        try:
+            server = HTTPServer(('', internalPort), myHandler)
+        except: # Cannot open port, use test port
+            internalPort = fallbackPort
+            server = HTTPServer(('', internalPort), myHandler)
+
+        print("Listening on port %d" % internalPort)
+        print("Ready to receive requests")
+
+        # Wait forever for incoming http requests
+        server.serve_forever()
+
+    except KeyboardInterrupt:
+        print ('^C received, shutting down the web server')
+        server.socket.close()

@@ -3,6 +3,7 @@ import json
 import pprint
 import time
 import datetime
+import pytz
 import locale
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -18,9 +19,19 @@ import argparse
 import os.path
 import json
 
+
 #from svglib.svglib import svg2rlg
 #from reportlab.graphics import renderPM
 #import tempfile
+
+
+# Returns the current UTC offset as integer value.
+def getCurrentUtcOffset():
+    utcOffset = datetime.datetime.now(pytz.timezone('Europe/Zurich')).strftime('%z')
+    utcOffset = int(int(utcOffset)/100)
+    print("Current UTC Offset: %d" % utcOffset)
+    return utcOffset
+
 
 class MeteoSwissForecast:
     # Constants
@@ -62,7 +73,7 @@ class MeteoSwissForecast:
         except Exception as e:
             raise Exception("Failed to get City name: %s" % e)
 
-        if not utcOffset:
+        if utcOffset == None:
             # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
             ts = time.time()
             utcOffset = (datetime.datetime.fromtimestamp(ts) -
@@ -70,7 +81,8 @@ class MeteoSwissForecast:
             self.utcOffset = int(utcOffset / 3600) # in hours
         else:
             self.utcOffset = utcOffset
-        logging.debug("UTC offset: %dh" % self.utcOffset)
+
+        logging.debug("UTC offset: %d" % self.utcOffset)
 
 
     """
@@ -637,7 +649,7 @@ if __name__ == '__main__':
     parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
-    parser.add_argument('--utc-offset', action='store', type=int, help='Offset to UTC, only needed if system does not know it', default=None)
+    parser.add_argument('--utc-offset', action='store', type=int, help='Offset to UTC, only needed if system does not know it (eg in a docker container)', default=None)
     parser.add_argument('--time-divisions', action='store', type=int, help='Distance in hours between time labels', default=6)
     parser.add_argument('--dark-mode', action='store_true', help='Use dark colors')
     parser.add_argument('--font-size', action='store', type=int, help='Font Size', default=12)
@@ -660,8 +672,14 @@ if __name__ == '__main__':
     logging.getLogger("matplotlib").setLevel(logging.WARNING) # hiding the debug messages from the matplotlib
     logging.getLogger("PIL").setLevel(logging.WARNING) # hiding the debug messages from the PIL
 
+
+    if args.utc_offset:
+        utcOffset = args.utc_offset
+    else:
+        utcOffset = getCurrentUtcOffset()
+
     try:
-        meteoSwissForecast = MeteoSwissForecast(zipCode=args.zip_code, utcOffset=args.utc_offset)
+        meteoSwissForecast = MeteoSwissForecast(zipCode=args.zip_code, utcOffset=utcOffset)
     except Exception as e:
         logging.error("An error occurred: %s" % e)
         exit(1)
