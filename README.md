@@ -48,6 +48,9 @@ for f in *.svg; do convert -background transparent -resize 256x256 -density 500 
 rm *.svg
 ```
 
+## Notes
+The scripts use the timezone of `Europe/Zurich` and take the daylight saving into consideration. If this does not work for you, use the `utc-offset` parameter for an override.
+
 
 # Docker
 ## Get it from Dockerhub
@@ -61,8 +64,6 @@ https://hub.docker.com/r/caco3x/meteoswiss-forecast
 1. Build the docker image with `docker build -t meteoswiss-forecast .`
 1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast -p 12080:80 meteoswiss-forecast`
 1. Call it in a webbrowser: `http://localhost:12080`
-
-:exclamation: Within the docker container, the UTC offset is always 0! To work around this, set the environment variable `UTC_OFFSET`.
 
 # Legal
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
