@@ -693,17 +693,15 @@ class MeteoSwissForecast:
 
 
         # Show city name in graph
-        # TODO find a way to show the label in the background
         if showCityName:
             logging.debug("Adding city name to plot...")
-            text = fig.text(1-7/width, 1-20/height, self.cityName, color='gray', ha='right', transform=rainAxis.transAxes)
+            text = rainAxis.annotate(self.cityName, xy=(width - 5, height - 18), color='gray', ha='right', linespacing = 0.8, xycoords='axes pixels')
             text.set_path_effects([path_effects.Stroke(linewidth=self.textShadowWidth, foreground='white'), path_effects.Normal()])
 
         # Show data copyright graph
-        # TODO find a way to show the label in the background
         if not hideDataCopyright:
             logging.debug("Adding data copyright to plot...")
-            text = fig.text(1-7/width, 7/height, "Data © by Meteoswiss", color='gray', ha='right', transform=rainAxis.transAxes)
+            text = rainAxis.annotate("Data © by Meteoswiss", xy=(width - 5, 5), color='gray', ha='right', linespacing = 0.8, xycoords='axes pixels')
             text.set_path_effects([path_effects.Stroke(linewidth=self.textShadowWidth, foreground='white'), path_effects.Normal()])
 
         if progressCallback:
