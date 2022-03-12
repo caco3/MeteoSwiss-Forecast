@@ -406,7 +406,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=None, writeMetaData=None, progressCallback=None):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None):
         if progressCallback:
             progressCallback("0%")
 
@@ -692,12 +692,18 @@ class MeteoSwissForecast:
             rainAxis.add_artist(ab)
 
 
-
         # Show city name in graph
         # TODO find a way to show the label in the background
         if showCityName:
             logging.debug("Adding city name to plot...")
             text = fig.text(1-7/width, 1-20/height, self.cityName, color='gray', ha='right', transform=rainAxis.transAxes)
+            text.set_path_effects([path_effects.Stroke(linewidth=self.textShadowWidth, foreground='white'), path_effects.Normal()])
+
+        # Show data copyright graph
+        # TODO find a way to show the label in the background
+        if not hideDataCopyright:
+            logging.debug("Adding data copyright to plot...")
+            text = fig.text(1-7/width, 7/height, "Data © by Meteoswiss", color='gray', ha='right', transform=rainAxis.transAxes)
             text.set_path_effects([path_effects.Stroke(linewidth=self.textShadowWidth, foreground='white'), path_effects.Normal()])
 
         if progressCallback:
@@ -748,6 +754,7 @@ if __name__ == '__main__':
     parser.add_argument('--symbol-zoom', action='store', type=float, help='scaling of the symbols', default=1.0)
     parser.add_argument('--symbol-divisions', action='store', type=int, help='Only draw every x symbol (1 equals every 3 hours)', default=1)
     parser.add_argument('--city-name', action='store_true', help='Show the name of the city')
+    parser.add_argument('--hide-data-copyright', action='store_false', help='Hide the data copyright. Please only do this for personal usage!')
 
     args = parser.parse_args()
 
@@ -786,4 +793,4 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast_" + args.zip_code + ".json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, writeMetaData=args.meta.name)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name)

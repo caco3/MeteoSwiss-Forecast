@@ -89,6 +89,7 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"<tr><td><b>symbol-zoom:</b></td><td>Scaling of the symbols.</td><td>Optional, default: 1.0</td></tr>\n")
         self.wfile.write(b"<tr><td><b>symbol-divisions:</b></td><td>Only draw every x symbol (1 equals every 3 hours).</td><td>Optional, default: 1</td></tr>\n")
         self.wfile.write(b"<tr><td><b>show-city-name:</b></td><td>Show the name of the city.</td><td>Optional, default: False</td></tr>\n")
+        self.wfile.write(b"<tr><td><b>hide-data-copyright:</b></td><td>Hide the data copyright. Please only do this for personal usage!</td><td>Optional, default: False</td></tr>\n")
         self.wfile.write(b"</table>\n")
         
         self.wfile.write(b"<h3>Example</h3>\n")
@@ -378,6 +379,12 @@ class myHandler(BaseHTTPRequestHandler):
             else:
                 cityName = False
             
+            parameter = 'hide-data-copyright'
+            if parameter in query:
+                hideDataCopyright = str2bool(query[parameter][0])
+            else:
+                hideDataCopyright = False
+
         except Exception as e:
             self.wfile.write(bytes("An error occurred on parameter \"%s\": %s!" % (parameter, e), 'utf-8'))
             return
@@ -421,7 +428,7 @@ class myHandler(BaseHTTPRequestHandler):
 
         forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
         meteoSwissForecast.exportForecastData(forecastData, forecastFile + str(zipCode) + ".json")
-        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, writeMetaData=(metaDataFile + str(zipCode) + ".json"), progressCallback=progressCallback)
+        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, hideDataCopyright=hideDataCopyright, writeMetaData=(metaDataFile + str(zipCode) + ".json"), progressCallback=progressCallback)
         
         print("Image got saved as " + forecastFile + str(zipCode) + ".png")
         print("Metadata got saved as " + metaDataFile + str(zipCode) + ".json")
