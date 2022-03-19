@@ -1,6 +1,6 @@
-matplotlib==3.3.3
-numpy==1.21.0
-requests==2.23.0
+matplotlib
+numpy
+requests
 urllib3
-pytz==2020.1
-pillow==9.0.1
+pytz
+pillow
