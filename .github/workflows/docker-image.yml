@@ -27,4 +27,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USER }}/meteoswiss-forecast
+          tags: ${{ secrets.DOCKERHUB_USER }}/meteoswiss-forecast          
+          tags: ${{ secrets.DOCKERHUB_USER }}/meteoswiss-forecast:$(date +%Y%m%d_%H%M%S)
