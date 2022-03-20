@@ -5,6 +5,7 @@ from meteoswissForecast import MeteoSwissForecast
 from markGraphic import markGraphic
 import logging
 import os
+from os.path import exists
 import json
 import datetime, pytz
 
@@ -157,28 +158,37 @@ class myHandler(BaseHTTPRequestHandler):
     
     
     def returnMarkedImage(self, query):
+        # Validate parameters
         try:
             if 'zip-code' in query:
                 zipCode = int(query['zip-code'][0])
             else:
                 self.showHelp()
                 return
-        
+
             if 'mark-time' in query:
                 markTime = str2bool(query['mark-time'][0])
             else:
                 markTime = False
-        
+
+            if 'utc-offset' in query:
+                utcOffset = query['utc-offset']
+            else:
+                utcOffset = getCurrentUtcOffset()
         except Exception as e:
             self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
             return
 
-        if 'utc-offset' in query:
-            utcOffset = query['utc-offset']
-        else:
-            utcOffset = getCurrentUtcOffset()
+        # Check if forecast image exists
+        if not exists(forecastFile + str(zipCode) + ".png"):
+            self.wfile.write(bytes("An error occurred: Forecast Image is missing! You need to call /generate-forecast first!", 'utf-8'))
+            return
 
         if markTime:
+            if not exists(metaDataFile + str(zipCode) + ".json"):
+                self.wfile.write(bytes("An error occurred: Meta File is missing!", 'utf-8'))
+                return
+
             try:
                 with open(metaDataFile + str(zipCode) + ".json") as metaFile:
                     metaData = json.load(metaFile)
