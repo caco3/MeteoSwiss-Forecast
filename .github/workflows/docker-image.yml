@@ -26,4 +26,4 @@ jobs:
         docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
         
     - name: docker push
-      run: docker push caco3/meteoswiss-forecast:$(date +%Y%m%d_%H%M%S)
+      run: docker push caco3/meteoswiss-forecast
