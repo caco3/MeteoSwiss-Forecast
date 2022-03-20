@@ -1,4 +1,5 @@
 name: Publish Docker image
+# Based on https://docs.github.com/en/actions/publishing-packages/publishing-docker-images
 
 on:
   push:
@@ -26,4 +27,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: caco3/meteoswiss-forecast
+          tags: ${{ secrets.DOCKERHUB_USER }}/meteoswiss-forecast
