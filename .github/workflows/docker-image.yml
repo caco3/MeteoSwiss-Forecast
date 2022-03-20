@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: docker/build-push-action@v2
     
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag caco3/meteoswiss-forecast
