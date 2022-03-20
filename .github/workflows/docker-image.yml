@@ -22,10 +22,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Build and push Docker images
+      - name: Build and push Docker images (latest)
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USER }}/meteoswiss-forecast          
+          
+      - name: Build and push Docker images /tagged with date/time)
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: true      
           tags: ${{ secrets.DOCKERHUB_USER }}/meteoswiss-forecast:$(date +%Y%m%d_%H%M%S)
