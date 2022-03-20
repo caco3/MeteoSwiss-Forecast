@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag caco3/meteoswiss-forecast:$(date +%Y%m%d_%H%M%S)
+      run: docker build . --file Dockerfile --tag caco3/meteoswiss-forecast
       
     - name: docker login
       env:
