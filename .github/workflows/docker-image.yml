@@ -29,4 +29,5 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          builder: ${{ steps.buildx.outputs.name }}
           tags: caco3/meteoswiss-forecast
