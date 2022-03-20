@@ -107,6 +107,7 @@ class myHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"<table>\n")
         self.wfile.write(b"<tr><td><b>zip-code:</b></td><td>Zip Code, eg. 8001</td><td>Mandatory</td></tr>\n")
         self.wfile.write(b"<tr><td><b>mark-time:</b></td><td>Add a mark of the current time.</td><td>Optional, default: False</td></tr>\n")
+        self.wfile.write(b"<tr><td><b>max-forecast-age:</b></td><td>Maximing age of a cached forecast in seconds. If the forecast is older, you need to call generate-forecast first.</td><td>Optional, default: 4200</td></tr>\n")
         self.wfile.write(b"</table>\n")
 
         self.wfile.write(b"<h3>Example</h3>\n")
@@ -166,6 +167,11 @@ class myHandler(BaseHTTPRequestHandler):
                 self.showHelp()
                 return
 
+            if 'max-forecast-age' in query:
+                maxForecastAge = int(query['max-forecast-age'][0])
+            else:
+                maxForecastAge = 60*70 # 70 minutes
+
             if 'mark-time' in query:
                 markTime = str2bool(query['mark-time'][0])
             else:
@@ -184,20 +190,29 @@ class myHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes("An error occurred: Forecast Image is missing! You need to call /generate-forecast first!", 'utf-8'))
             return
 
+        # Load Meta Data
+        if not exists(metaDataFile + str(zipCode) + ".json"):
+            self.wfile.write(bytes("An error occurred: Meta File is missing!", 'utf-8'))
+            return
+
+        try:
+            with open(metaDataFile + str(zipCode) + ".json") as metaFile:
+                metaData = json.load(metaFile)
+        except Exception as e:
+            self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
+            return
+
+        print("Meta Data:", metaData)
+
+        # Check if forecast is not too old
+        now = int(datetime.datetime.now().timestamp())
+        print("Current timestamp: %d, time since last forecast update: %d s (max. allowed forecast age: %d s)" % (now, now - metaData['forecastGenerationTimestamp'], maxForecastAge))
+        if now - metaData['forecastGenerationTimestamp'] > maxForecastAge:
+            self.wfile.write(bytes("An error occurred: Forecast is too old! You need to update it first using /generate-forecast!", 'utf-8'))
+            return
+
+        # Mark current time on image
         if markTime:
-            if not exists(metaDataFile + str(zipCode) + ".json"):
-                self.wfile.write(bytes("An error occurred: Meta File is missing!", 'utf-8'))
-                return
-
-            try:
-                with open(metaDataFile + str(zipCode) + ".json") as metaFile:
-                    metaData = json.load(metaFile)
-            except Exception as e:
-                self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))
-                return
-
-            print(metaData)
-
             markGraphic(inputFile=forecastFile + str(zipCode) + ".png", 
                         outputFile=markedForecastFile + str(zipCode) + ".png", 
                         metaFile=metaDataFile + str(zipCode) + ".json", x=metaData['firstDayX'], y=metaData['firstDayY'],

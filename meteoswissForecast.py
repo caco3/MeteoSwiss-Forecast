@@ -724,6 +724,7 @@ class MeteoSwissForecast:
             metaData['dayWidth'] = dayWidth
             metaData['dayHeight'] = dayHeight
             metaData['modelTimestamp'] = self.data["modelCalculationTimestamp"] # Seconds in UTC
+            metaData['forecastGenerationTimestamp'] = int(datetime.datetime.now().timestamp())
             with open(writeMetaData, 'w') as metaFile:
                 json.dump(metaData, metaFile)
 
