@@ -19,7 +19,7 @@ class MeasurementDataProvider():
     
     
     def getMeasurement(self, sensor, groupingInterval=10, fill=0):
-
+        print("Fetching data of sensor %r from InfluxDB..." % sensor)
         client = InfluxDBClient(host=self.measurementDataDbHost, port=self.measurementDataDbPort, username=self.measurementDataDbUser, password=self.measurementDataDbPassword)
         client.get_list_database()
         

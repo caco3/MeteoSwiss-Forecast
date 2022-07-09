@@ -844,7 +844,9 @@ if __name__ == '__main__':
             try:
                 logging.debug("Fetching sensor data (temperature)...")
                 #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
-                measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
+                #measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
+                measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
+                measuredTemperature[1] = measuredTemperature[1] - 6
             except Exception as e:
                 logging.error("An error occurred: %s" % e)
                 measuredTemperature = None
