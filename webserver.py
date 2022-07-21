@@ -496,9 +496,6 @@ class myHandler(BaseHTTPRequestHandler):
                     logging.debug("Fetching sensor data (temperature)...")
                     #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
                     measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
-                    #measTempTime, measTemperature = measuredTemperature
-                    #measTemperature = [x - 6 for x in measTemperature]
-                    #measuredTemperature = (measTempTime, measTemperature)
                 except Exception as e:
                     logging.error("An error occurred: %s" % e)
                     measuredTemperature = None
