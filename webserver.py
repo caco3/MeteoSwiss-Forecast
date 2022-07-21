@@ -285,11 +285,23 @@ class myHandler(BaseHTTPRequestHandler):
 
             forecastData = meteoSwissForecast.importForecastData(forecastFile + str(zipCode) + ".json")
             nextRain, nextPossibleRain = meteoSwissForecast.getNextRain(forecastData)
-            if nextRain == None or nextRain > 24:
-                nextRain = ">24"
-            if nextPossibleRain == None or nextPossibleRain > 24:
-                nextPossibleRain = ">24"
-            jsonData = '{ "nextRain": "' + str(nextRain) + '", "nextPossibleRain": "' + str(nextPossibleRain) + '" }'
+
+            if nextRain == None:
+                nextRain = 4 * 24
+
+            if nextPossibleRain == None:
+                nextPossibleRain = 4 * 24
+
+            nextRainText = nextRain
+            nextPossibleRainText = nextPossibleRain
+
+            if nextRain > 24:
+                nextRainText = ">24"
+
+            if nextPossibleRain > 24:
+                nextPossibleRainText = ">24"
+
+            jsonData = '{ "nextRain": "' + str(nextRain) + '", "nextPossibleRain": "' + str(nextPossibleRain) + '", "nextRainText": "' + str(nextRainText) + '",  "nextPossibleRainText": "' + str(nextPossibleRainText) + '" }'
             self.wfile.write(bytes(jsonData, 'utf-8'))
         except Exception as e:
             if "No such file" in str(e):
@@ -484,9 +496,9 @@ class myHandler(BaseHTTPRequestHandler):
                     logging.debug("Fetching sensor data (temperature)...")
                     #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
                     measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
-                    measTempTime, measTemperature = measuredTemperature
-                    measTemperature = [x - 6 for x in measTemperature]
-                    measuredTemperature = (measTempTime, measTemperature)
+                    #measTempTime, measTemperature = measuredTemperature
+                    #measTemperature = [x - 6 for x in measTemperature]
+                    #measuredTemperature = (measTempTime, measTemperature)
                 except Exception as e:
                     logging.error("An error occurred: %s" % e)
                     measuredTemperature = None
