@@ -40,10 +40,11 @@ Run `python3 -m pip install -r requirements.txt` to install all needed Python pa
 MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
 The folder `symbols` provides the already converted symbols. Alternatively you can generate them yourself:
 ```
+BASE_URL="https://www.meteoschweiz.admin.ch/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols"
 mkdir symbols
 cd symbols
-for i in {1..35}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
-for i in {101..135}; do wget https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/assets/images/icons/meteo/weather-symbols/$i.svg; done
+for i in {1..50}; do wget "$BASE_URL/$i.svg"; done
+for i in {101..150}; do wget "$BASE_URL/$i.svg"; done
 for f in *.svg; do convert -background transparent -resize 256x256 -density 500 $f ${f%.svg}.png; done
 rm *.svg
 ```
@@ -53,8 +54,8 @@ The scripts use the timezone of `Europe/Zurich` and take the daylight saving int
 
 
 # Docker
-## Get it from Dockerhub
-https://hub.docker.com/r/caco3x/meteoswiss-forecast
+## Get it from Dockerhub (outdated)
+~~https://hub.docker.com/r/caco3x/meteoswiss-forecast~~
 
 ## Build it manually
 `docker build -t meteoswiss-forecast .`
@@ -64,6 +65,15 @@ https://hub.docker.com/r/caco3x/meteoswiss-forecast
 1. Build the docker image with `docker build -t meteoswiss-forecast .`
 1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast -p 12080:80 meteoswiss-forecast`
 1. Call it in a webbrowser: `http://localhost:12080`
+
+## replace existing Docker Container (Update)
+```
+docker build -t meteoswiss-forecast .
+docker stop meteoswiss-forecast
+docker rm meteoswiss-forecast
+docker run -d -P --name meteoswiss-forecast -p 12080:80 meteoswiss-forecast
+```
+
 
 # Legal
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
