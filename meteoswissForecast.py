@@ -18,6 +18,7 @@ import logging
 import argparse
 import os.path
 import json
+import measurementDataProvider
 
 
 #from svglib.svglib import svg2rlg
@@ -406,7 +407,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None, measuredRain=None, measuredTemperature=None):
         if progressCallback:
             progressCallback("0%")
 
@@ -491,6 +492,13 @@ class MeteoSwissForecast:
         rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"], width=0, length=8)
         rainYRange = plt.ylim()
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
+
+        if measuredRain:
+            measRainTime, measRain = measuredRain
+            measRainTime = [t + self.utcOffset * 3600 for t in measRainTime]
+            rainScaleMax = max(rainScaleMax, max(measRain) + 1)
+
+
         plt.ylim(0, rainScaleMax)
         rainAxis.locator_params(axis='y', nbins=7)
         # TODO find a better way than rounding 
@@ -533,15 +541,17 @@ class MeteoSwissForecast:
 
         # Show when the model was last calculated
         timestampLocal = data["modelCalculationTimestamp"] + self.utcOffset * 3600
-        l = mlines.Line2D([timestampLocal, timestampLocal], [rainYRange[0], rainScaleMax])
-        rainAxis.add_line(l)
+        #l = mlines.Line2D([timestampLocal, timestampLocal], [rainYRange[0], rainScaleMax])
+        #rainAxis.add_line(l)
+        #rainAxis.plot([timestampLocal], [(rainScaleMax-rainYRange[0])/40], '^', color='blue', linewidth=2)
+        rainAxis.plot([timestampLocal], [rainScaleMax* 0.97], 'v', color='green', markersize=10)
 
 
         if progressCallback:
             progressCallback("40%")
 
         # Temperature
-        logging.debug("Creating temerature plot...")
+        logging.debug("Creating temperature plot...")
         temperatureAxis = rainAxis.twinx()  # instantiate a second axes that shares the same x-axis
         temperatureAxis.plot(data["timestamps"], data["temperature"], label = "temperature", color=self.temperatureColor, linewidth=4)
         #temperatureAxis.set_ylabel('Temperature', color=self.temperatureColor)
@@ -555,10 +565,17 @@ class MeteoSwissForecast:
 
 
         # Make sure the temperature scaling has a gap of 45 pixel, so we can fit the labels
-
         interimPixelToTemperature = (np.nanmax(data["temperature"]) - np.nanmin(data["temperature"])) / height
-        temperatureScaleMin = np.nanmin(data["temperature"]) - float(45) * interimPixelToTemperature
-        temperatureScaleMax = np.nanmax(data["temperature"]) + float(45) * interimPixelToTemperature
+        extraYScaleGap = float(45) * interimPixelToTemperature
+        temperatureScaleMin = np.nanmin(data["temperature"]) - extraYScaleGap
+        temperatureScaleMax = np.nanmax(data["temperature"]) + extraYScaleGap
+
+
+        if measuredTemperature:
+            measTempTime, measTemperature = measuredTemperature
+            measTempTime = [t + self.utcOffset * 3600 for t in measTempTime]
+            temperatureScaleMin = min(temperatureScaleMin, min(measTemperature) - extraYScaleGap)
+            temperatureScaleMax = max(temperatureScaleMax, max(measTemperature) + extraYScaleGap)
 
 
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
@@ -574,6 +591,16 @@ class MeteoSwissForecast:
         temperatureVarianceAxis.fill_between(data["timestamps"], data["temperatureVarianceMin"], data["temperatureVarianceMax"], facecolor=self.temperatureColor, alpha=0.2)
         temperatureVarianceAxis.tick_params(axis='y', labelcolor=self.temperatureColor)
         plt.ylim(temperatureScaleMin, temperatureScaleMax)
+
+
+        if measuredRain:
+            logging.debug("Measured rain data got provided, adding it to plot...") 
+            #rainAxis.step(measRainTime, measRain, where='post', alpha=0.4, color='red') # Histogram curve
+            rainAxis.fill_between(measRainTime, measRain, alpha=0.8, step="post", zorder=2) # Histogram infill
+
+        if measuredTemperature:
+            logging.debug("Measured temperature data got provided, adding it to plot...")
+            temperatureVarianceAxis.plot(measTempTime, measTemperature, linewidth=4, color='coral', zorder=2)
 
 
         logging.debug("Adding various additional information to the graph...")
@@ -755,6 +782,12 @@ if __name__ == '__main__':
     parser.add_argument('--city-name', action='store_true', help='Show the name of the city')
     parser.add_argument('--hide-data-copyright', action='store_false', help='Hide the data copyright. Please only do this for personal usage!')
 
+    parser.add_argument('--measurement-data-db-host', action='store', help='DB host providing real local data')
+    parser.add_argument('--measurement-data-db-port', action='store', type=int, help='DB port')
+    parser.add_argument('--measurement-data-db-user', action='store', help='DB username')
+    parser.add_argument('--measurement-data-db-password', action='store', help='DB password')
+
+
     args = parser.parse_args()
 
     logLevel = logging.INFO
@@ -792,4 +825,36 @@ if __name__ == '__main__':
     #pprint.pprint(forecastData)
     #meteoSwissForecast.exportForecastData(forecastData, "./forecast_" + args.zip_code + ".json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name)
+
+    #if args.measurement_data_db_host != None and args.measurement_data_db_port != None and args.measurement_data_db_user != None and args.measurement_data_db_password != None:  
+        logging.debug("Using Measurement Data to show real local data")
+    if True:
+        try:
+            #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=args.measurement_data_db_host, measurementDataDbPort=args.measurement_data_db_port, measurementDataDbUser=args.measurement_data_db_user, measurementDataDbPassword=args.measurement_data_db_password)
+
+            mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost='192.168.1.99', measurementDataDbPort=5086, measurementDataDbUser='meteoswiss-forecast', measurementDataDbPassword='wrewygewtcqxgewtcxeqgwq3')
+
+            try:
+                logging.debug("Fetching sensor data (rain)...")
+                measuredRain = mdp.getMeasurement(sensor="regen_pro_h", groupingInterval=10, fill="previous")
+            except Exception as e:
+                logging.error("An error occurred: %s" % e)
+                measuredRain = None
+        
+            try:
+                logging.debug("Fetching sensor data (temperature)...")
+                #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
+                #measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
+                measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
+            except Exception as e:
+                logging.error("An error occurred: %s" % e)
+                measuredTemperature = None
+        except Exception as e:
+            logging.error("Failed to connect to Measurement Data DB: %s" % e)
+            measuredRain = None
+            measuredTemperature = None
+    else:
+        measuredRain = None
+        measuredTemperature = None
+
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name, measuredRain=measuredRain, measuredTemperature=measuredTemperature)

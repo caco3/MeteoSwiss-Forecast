@@ -1,6 +1,7 @@
-matplotlib
+matplotlib==3.4
 numpy
 requests
 urllib3
 pytz
 pillow
+influxdb

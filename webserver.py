@@ -8,6 +8,7 @@ import os
 from os.path import exists
 import json
 import datetime, pytz
+import measurementDataProvider
 
 # Meteoswiss only provides the data of the up to 7 days.
 maximumNumberOfDays = 7
@@ -284,7 +285,23 @@ class myHandler(BaseHTTPRequestHandler):
 
             forecastData = meteoSwissForecast.importForecastData(forecastFile + str(zipCode) + ".json")
             nextRain, nextPossibleRain = meteoSwissForecast.getNextRain(forecastData)
-            jsonData = '{ "nextRain": "' + str(nextRain) + '", "nextPossibleRain": "' + str(nextPossibleRain) + '" }'
+
+            if nextRain == None:
+                nextRain = 4 * 24
+
+            if nextPossibleRain == None:
+                nextPossibleRain = 4 * 24
+
+            nextRainText = nextRain
+            nextPossibleRainText = nextPossibleRain
+
+            if nextRain > 24:
+                nextRainText = ">24"
+
+            if nextPossibleRain > 24:
+                nextPossibleRainText = ">24"
+
+            jsonData = '{ "nextRain": "' + str(nextRain) + '", "nextPossibleRain": "' + str(nextPossibleRain) + '", "nextRainText": "' + str(nextRainText) + '",  "nextPossibleRainText": "' + str(nextPossibleRainText) + '" }'
             self.wfile.write(bytes(jsonData, 'utf-8'))
         except Exception as e:
             if "No such file" in str(e):
@@ -451,9 +468,48 @@ class myHandler(BaseHTTPRequestHandler):
             except:
                 pass
 
+        
+        #try:
+            #mdp = measurementDataProvider.MeasurementDataProvider(influxDbHost='192.168.1.99', influxDbPort=5086, influxDbUser='python', influxDbPassword='heaven7') # TODO move to config file
+            #measuredRain = mdp.getMeasurement(sensor="regenstaerke", groupingInterval=10, fill=0)
+            #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=5, fill="previous")
+        #except Exception as e:
+            #logging.error("An error occurred: %s" % e)
+            #measuredRain = None
+            #measuredTemperature = None
+            
+        #if measurement_data_db_host != None and measurement_data_db_port != None and measurement_data_db_user != None and measurement_data_db_password != None: 
+        if True:
+            logging.debug("Using Measurement Data to show real local data")
+            try:
+                #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=measurement_data_db_host, measurementDataDbPort=measurement_data_db_port, measurementDataDbUser=measurement_data_db_user, measurementDataDbPassword=measurement_data_db_password)
+                mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost='192.168.1.99', measurementDataDbPort=5086, measurementDataDbUser='meteoswiss-forecast', measurementDataDbPassword='wrewygewtcqxgewtcxeqgwq3')
+                
+                try:
+                    logging.debug("Fetching sensor data (rain)...")
+                    measuredRain = mdp.getMeasurement(sensor="regen_pro_h", groupingInterval=10, fill="previous")
+                except Exception as e:
+                    logging.error("An error occurred: %s" % e)
+                    measuredRain = None
+            
+                try:
+                    logging.debug("Fetching sensor data (temperature)...")
+                    #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
+                    measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
+                except Exception as e:
+                    logging.error("An error occurred: %s" % e)
+                    measuredTemperature = None
+            except Exception as e:
+                logging.error("Failed to connect to Measurement Data DB: %s" % e)
+                measuredRain = None
+                measuredTemperature = None
+        else:
+            measuredRain = None
+            measuredTemperature = None
+
         forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
         meteoSwissForecast.exportForecastData(forecastData, forecastFile + str(zipCode) + ".json")
-        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, hideDataCopyright=hideDataCopyright, writeMetaData=(metaDataFile + str(zipCode) + ".json"), progressCallback=progressCallback)
+        meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, hideDataCopyright=hideDataCopyright, writeMetaData=(metaDataFile + str(zipCode) + ".json"), progressCallback=progressCallback, measuredRain=measuredRain, measuredTemperature=measuredTemperature)
         
         print("Image got saved as " + forecastFile + str(zipCode) + ".png")
         print("Metadata got saved as " + metaDataFile + str(zipCode) + ".json")
