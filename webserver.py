@@ -453,7 +453,7 @@ class myHandler(BaseHTTPRequestHandler):
                 self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))            
             return
 
-        dataUrl = meteoSwissForecast.getDataUrl()
+        dataUrl = meteoSwissForecast.getForecastDataUrl()
         print("Data URL: %s" % dataUrl, flush=True)
 
         self.wfile.write(b"Generating Forecast...<br>\n")

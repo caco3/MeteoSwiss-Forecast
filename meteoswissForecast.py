@@ -89,6 +89,18 @@ class MeteoSwissForecast:
         logging.debug("UTC offset: %d" % self.utcOffset)
 
 
+    def getUrlJson(self, url):
+        logging.debug("Downloading %r..." % url)
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        try:
+            data = urlopen(req).read().decode('utf-8')
+        except Exception as e:
+            raise Exception("Failed to fetch URL (%r): %r" % (url, e))
+
+        logging.debug("Download completed")
+        return json.loads(data)
+
+
     """
     Gets the Forecast Data URL (chart)
     The version can get fetched from https://www.meteoschweiz.admin.ch/product/output/forecast-chart/versions.json
@@ -113,18 +125,6 @@ class MeteoSwissForecast:
         
         logging.debug("The data URL is: %r" % forecastDataUrl)
         return forecastDataUrl
-
-
-    def getUrlJson(self, url):
-        logging.debug("Downloading %r..." % url)
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        try:
-            data = urlopen(req).read().decode('utf-8')
-        except Exception as e:
-            raise Exception("Failed to fetch URL (%r): %r" % (url, e))
-
-        logging.debug("Download completed")
-        return json.loads(data)
 
 
     """
