@@ -83,3 +83,36 @@ The scripts are provided under the terms of the GPL V3.
 # TODO
  - Update Images in readme
  - Refactor code, split data extractor and plot generator code
+
+
+ 
+# Internals
+## Data Fetching Flow
+As of Nov. 2022, the workflow and URLs changed:
+
+### Get Overview Version
+https://www.meteoschweiz.admin.ch/product/output/weather-pill/versions.json
+```json
+{"currentVersionDirectory":"version__20221116_0707"}
+```
+
+### Get Overview Data based on Zip code (contains city name)
+https://www.meteoschweiz.admin.ch/product/output/weather-pill/version__20221116_0707/de/800100.json
+```json
+{"path":"/lokalprognose/zuerich/8001.html","temp_high":"13","name":"Zürich","temp_low":"8","weather_symbol_id":"3"}
+```
+
+ 
+## Fetch Forecast Data
+### Get Forecast version
+https://www.meteoschweiz.admin.ch/product/output/forecast-chart/versions.json
+```json
+{"currentVersionDirectory":"version__20221116_0709"}
+```
+ 
+### Get Forecast Data
+https://www.meteoschweiz.admin.ch/product/output/forecast-chart/version__20221116_0709/de/800100.json
+```
+[{"max_date":1668636000000,"rainfall":[[1668553200000,0.2],[1668556800000,0.2],[1668560400000,1],[1668564000000,0.7],[1668567600000,0.2],[1668571200000,0],[1668574800000,0],[1668578400000,0],[1668582000000,0],[1668585600000,0],[1668589200000,0],[1668592800000,0],[1668596400000,0],[1668600000000,0],[1668603600000,0],[1668607200000,0],[1668610800000,0],[1668614400000,0],[1668618000000,0],[1668621600000,0],[1668625200000,0],[1668628800000,0],[1668632400000,0],[1668636000000,0]],"sunrise":1668580293000,"day_string":"Heute","sunshine":[[1668553200000,0],[1668556800000,0],[1668560400000,0],[1668564000000,0],[1668567600000,0],[1668571200000,0],[1668574800000,0],[1668578400000,0],[1668582000000,0],[1668585600000,0],[1668589200000,21],[1668592800000,36],[1668596400000,36],[1668600000000,37],[1668603600000,33],[1668607200000,2],[1668610800000,0],[1668614400000,0],
+[..]
+```

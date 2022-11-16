@@ -41,13 +41,12 @@ def getCurrentUtcOffset():
 class MeteoSwissForecast:
     # Constants
     domain = "http://www.meteoschweiz.admin.ch"
-    indexPage = "home.html?tab=overview" # => https://www.meteoschweiz.admin.ch/home.html?tab=overview
 
-    dataUrlPrefix = "/product/output/forecast-chart/version__"
-    dataUrlSuffix = ".json"
-
-    locationUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/ajax/location/"
-    locationUrlSuffix = ".json"
+    # Location Information URL
+    pillUrlPrefix = "product/output/weather-pill"
+    
+    # Forecast Information URL
+    chartUrlPrefix = "product/output/forecast-chart"
 
     #symbolsUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols/"
     #symbolsUrlSuffix = ".svg"
@@ -91,60 +90,80 @@ class MeteoSwissForecast:
 
 
     """
-    Gets the data URL
-    Example Data URL: https://www.meteoschweiz.admin.ch//product/output/forecast-chart/version__20200605_1122/de/800100.json
+    Gets the Forecast Data URL (chart)
+    The version can get fetched from https://www.meteoschweiz.admin.ch/product/output/forecast-chart/versions.json
+    The Forecast Data URL then is: https://www.meteoschweiz.admin.ch/product/output/forecast-chart/version__20221116_0709/de/800100.json
+    
     The 8001 represents the Zip Code of the location you want
-    The 20200605 is the current date
-    The 1122 is the time the forecast model got run by Meteo Swiss
-    Since we do not know when the last forecast model got run, we have to parse the Meteo Swiss index page and take it from there.
+    The 20221116 is the current date
+    The 0709 is the time the forecast model got run by Meteo Swiss
     """
-    def getDataUrl(self):
-        indexUrl = self.domain + "/" + self.indexPage
-        logging.debug("The index URL is: %s" % indexUrl)
-        req = Request(indexUrl, headers={'User-Agent': 'Mozilla/5.0'})
+    def getForecastDataUrl(self):
+        chartVersionUrl = self.domain + "/" + self.chartUrlPrefix + "/versions.json"
+        logging.debug("Downloading chart version from %r..." % chartVersionUrl)
+        chartVersion = self.getUrlJson(chartVersionUrl)
+        # {'currentVersionDirectory': 'version__20221116_0810'}
+        logging.debug(chartVersion)
+        
+        version = chartVersion['currentVersionDirectory']
+        # version__20221116_0810
+        logging.debug(version)
+        
+        forecastDataUrl = self.domain + "/" + self.chartUrlPrefix + "/" + version + "/de/" + str(self.zipCode) + "00" + ".json" 
+        
+        logging.debug("The data URL is: %r" % forecastDataUrl)
+        return forecastDataUrl
+
+
+    def getUrlJson(self, url):
+        logging.debug("Downloading %r..." % url)
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         try:
-            indexPageContent = str(urlopen(req).read())
+            data = urlopen(req).read().decode('utf-8')
         except Exception as e:
-            raise Exception("Failed to fetch index URL (\"%s\"): \"%s\"" % (indexUrl, e))
-
-        dataUrlStartPosition = indexPageContent.find(self.dataUrlPrefix)
-        dataUrlEndPosition = indexPageContent.find(self.dataUrlSuffix, dataUrlStartPosition)
-        if dataUrlStartPosition == -1:
-            raise Exception("Failed to find Data URL prefix (\"%s\") in index URL (\"%s\")" % (self.dataUrlPrefix, indexUrl))
-        if dataUrlEndPosition == -1:
-            raise Exception("Failed to find Data URL suffix (\"%s\") in index Page (\"%s\")" % (self.dataUrlSuffix, indexUrl))
-
-        dataUrl = self.domain + "/" + indexPageContent[dataUrlStartPosition:dataUrlEndPosition - 6] + str(self.zipCode) + "00" + self.dataUrlSuffix
-
-        logging.debug("The data URL is: \"%s\"" % dataUrl)
-        return dataUrl
-
-
-    """
-    Fetches the meta data file and extracts the city name
-    Example location URL: https://www.meteoschweiz.admin.ch/etc/designs/meteoswiss/ajax/location/800100.json
-    """
-    def getCityName(self):
-        locationUrl = self.domain + self.locationUrlPrefix + str(self.zipCode) + "00" + self.locationUrlSuffix
-        logging.debug("Downloading data from %s..." % locationUrl)
-        req = Request(locationUrl, headers={'User-Agent': 'Mozilla/5.0'})
-        try:
-            locationDataPlain = (urlopen(req).read()).decode('utf-8')
-        except Exception as e:
-            raise Exception("Failed to fetch location URL (\"%s\"): \"%s\"" % (locationUrl, e))
+            raise Exception("Failed to fetch URL (%r): %r" % (url, e))
 
         logging.debug("Download completed")
-        locationData = json.loads(locationDataPlain)
+        return json.loads(data)
 
-        logging.debug("The location is: %s" % locationData["city_name"])
-        return locationData["city_name"]
+
+    """
+    Fetches the meta data file (pill) and extracts the city name
+    This is a 2 step fetch:
+     1. Get the pill version information from https://www.meteoschweiz.admin.ch/product/output/weather-pill/versions.json
+     2. Extract the version
+     3. Get the pill from https://www.meteoschweiz.admin.ch/product/output/weather-pill/version__20221116_0707/de/800100.json
+     
+    The 8001 represents the Zip Code of the location you want
+    The 20221116 is the current date
+    The 0707 is the time the forecast model got run by Meteo Swiss
+    """
+    def getCityName(self):
+        pillVersionUrl = self.domain + "/" + self.pillUrlPrefix + "/versions.json"
+        logging.debug("Downloading pill version from %r..." % pillVersionUrl)
+        pillVersion = self.getUrlJson(pillVersionUrl)
+        # {'currentVersionDirectory': 'version__20221116_0740'}
+        logging.debug(pillVersion)
+        
+        version = pillVersion['currentVersionDirectory']
+        # version__20221116_0740
+        logging.debug(version)
+        
+        pillUrl = self.domain + "/" + self.pillUrlPrefix + "/" + version + "/de/" + str(self.zipCode) + "00" + ".json"
+        logging.debug("Downloading city name data from %s..." % pillUrl)
+        pill = self.getUrlJson(pillUrl)
+        # {'path': '/lokalprognose/zuerich/8001.html', 'temp_high': '13', 'name': 'Zürich', 'temp_low': '8', 'weather_symbol_id': '4'}
+        logging.debug(pill)
+        
+        logging.debug("The location is: %s" % pill["name"])
+        return pill["name"]
 
 
     """
     Extracts the timestamp (in UTC) of when the model was calculated by meteoSwiss
     """
-    def getModelCalculationTimestamp(self, dataUrl):
-        arr = dataUrl.split("__")
+    def getModelCalculationTimestamp(self, forecastDataUrl):
+        arr = forecastDataUrl.split("__")
         # Example of arr[1]: 20200609_0913/de/862000.json
         # Note that the time is in UTC!
         arr = arr[1].split("/")
@@ -154,21 +173,14 @@ class MeteoSwissForecast:
 
 
     """
-    Loads the data file (JSON) from the MeteoSwiss server and stores it as a dict of lists
+    Loads the Forecast Data file and stores it as a dict of lists
     """
-    def collectData(self, dataUrl=None, daysToUse=7, timeFormat="%H:%M", dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
-        self.data["dataUrl"] = dataUrl
-        logging.debug("Downloading data from %s..." % dataUrl)
-        req = Request(dataUrl, headers={'User-Agent': 'Mozilla/5.0', 'referer': self.domain + "/" + self.indexPage})
-        try:
-            forcastDataPlain = (urlopen(req).read()).decode('utf-8')
-        except Exception as e:
-            raise Exception("Failed to fetch data URL (%s): %s" % (dataUrl, e))
-
-        logging.debug("Download completed")
-        forecastData = json.loads(forcastDataPlain)
+    def collectData(self, forecastDataUrl=None, daysToUse=7, timeFormat="%H:%M", dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
+        forecastData = self.getUrlJson(forecastDataUrl)
+        #print(forecastData)
 
         # Meteoswiss only provides the data of the up to 7 days.
+        logging.debug("%r, %r" % (daysToUse, maximumNumberOfDays))
         if daysToUse > maximumNumberOfDays:
             daysToUse = maximumNumberOfDays
             logging.warning("Limiting days to be shown to %d days!" % maximumNumberOfDays)
@@ -188,7 +200,7 @@ class MeteoSwissForecast:
         rainfall = []
 
         logging.debug("Parsing data...")
-        self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(dataUrl)
+        self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(forecastDataUrl)
         ## TODO add zip code and location name to data dict
 
         try:
@@ -258,7 +270,7 @@ class MeteoSwissForecast:
         # We replace it by NaN
         for key, data in self.data.items():
             try:
-                if key != "dataUrl":
+                if key != "forecastDataUrl":
                     self.data[key] =  [np.nan if v is None else v for v in self.data[key]]
             except:
                 pass
@@ -765,7 +777,7 @@ if __name__ == '__main__':
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the city to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written (PNG)')
     parser.add_argument('-m', '--meta', type=argparse.FileType('w'), required=True, help='File name with meta data to be written (JSON)')
-    parser.add_argument('--days-to-show', action='store', type=int, choices=range(1, 8), help='Number of days to show. If not set, use all data')
+    parser.add_argument('--days-to-show', action='store', type=int, default=4, choices=range(1, 8), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
     parser.add_argument('--utc-offset', action='store', type=int, help='Offset to UTC, only needed if system does not know it (eg in a docker container)', default=None)
@@ -811,13 +823,13 @@ if __name__ == '__main__':
         exit(1)
 
     try:
-        dataUrl = meteoSwissForecast.getDataUrl()
+        forecastDataUrl = meteoSwissForecast.getForecastDataUrl()
     except Exception as e:
         logging.error("An error occurred: %s" % e)
         exit(1)
 
     try:
-        forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
+        forecastData = meteoSwissForecast.collectData(forecastDataUrl=forecastDataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
     except Exception as e:
         logging.error("An error occurred: %s" % e)
         exit(1)
