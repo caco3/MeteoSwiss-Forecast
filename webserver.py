@@ -453,8 +453,8 @@ class myHandler(BaseHTTPRequestHandler):
                 self.wfile.write(bytes("An error occurred: %s!" % e, 'utf-8'))            
             return
 
-        dataUrl = meteoSwissForecast.getForecastDataUrl()
-        print("Data URL: %s" % dataUrl, flush=True)
+        forecastDataUrl = meteoSwissForecast.getForecastDataUrl()
+        print("Forecast Data URL: %s" % forecastDataUrl, flush=True)
 
         self.wfile.write(b"Generating Forecast...<br>\n")
         self.wfile.flush()
@@ -508,7 +508,7 @@ class myHandler(BaseHTTPRequestHandler):
             measuredRain = None
             measuredTemperature = None
 
-        forecastData = meteoSwissForecast.collectData(dataUrl=dataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
+        forecastData = meteoSwissForecast.collectData(forecastDataUrl=forecastDataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
         meteoSwissForecast.exportForecastData(forecastData, forecastFile + str(zipCode) + ".json")
         meteoSwissForecast.generateGraph(data=forecastData, outputFilename=(forecastFile + str(zipCode) + ".png"), timeDivisions=timeDivisions, graphWidth=width, graphHeight=height, darkMode=darkMode, rainVariance=rainVariance, minMaxTemperature=minMaxTemperatures, fontSize=fontSize, symbolZoom=symbolZoom, symbolDivision=symbolDivisions, showCityName=cityName, hideDataCopyright=hideDataCopyright, writeMetaData=(metaDataFile + str(zipCode) + ".json"), progressCallback=progressCallback, measuredRain=measuredRain, measuredTemperature=measuredTemperature)
         
