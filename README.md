@@ -63,7 +63,7 @@ The scripts use the timezone of `Europe/Zurich` and take the daylight saving int
 ## Run it in a Docker Container
 1. Adjust the parameters in `Dockerfile`
 1. Build the docker image with `docker build -t meteoswiss-forecast .`
-1. Run it with `docker run -it --rm -v /tmp:/data --name my-meteoswiss-forecast -p 12080:80 meteoswiss-forecast`
+1. Run it with `docker run -it --rm -v /volume1/web/MeteoSwiss-Forecast:/data --name my-meteoswiss-forecast -p 12080:80 meteoswiss-forecast`
 1. Call it in a webbrowser: `http://localhost:12080`
 
 ## replace existing Docker Container (Update)
@@ -71,7 +71,7 @@ The scripts use the timezone of `Europe/Zurich` and take the daylight saving int
 docker build -t meteoswiss-forecast .
 docker stop meteoswiss-forecast
 docker rm meteoswiss-forecast
-docker run -d -P --name meteoswiss-forecast -p 12080:80 meteoswiss-forecast
+docker run -d -P --name meteoswiss-forecast -p 12080:80 -v /volume1/web/MeteoSwiss-Forecast:/data meteoswiss-forecast
 ```
 
 
