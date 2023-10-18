@@ -37,8 +37,9 @@ Since the generation of the forecast is rater slow, one might want to only updat
 Run `python3 -m pip install -r requirements.txt` to install all needed Python packages.
 
 ### Get Symbols
+The icons are not provided in this repo for legal reasons. But they can be fetched with the below script.
 MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
-The folder `symbols` provides the already converted symbols. Alternatively you can generate them yourself:
+Following script needs to be run once to fetch and convert all icons:
 ```
 BASE_URL="https://www.meteoschweiz.admin.ch/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols"
 mkdir symbols
@@ -54,10 +55,7 @@ The scripts use the timezone of `Europe/Zurich` and take the daylight saving int
 
 
 # Docker
-## Get it from Dockerhub (outdated)
-~~https://hub.docker.com/r/caco3x/meteoswiss-forecast~~
-
-## Build it manually
+## Build it
 `docker build -t meteoswiss-forecast .`
 
 ## Run it in a Docker Container
