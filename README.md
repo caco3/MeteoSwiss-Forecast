@@ -40,7 +40,7 @@ Run `python3 -m pip install -r requirements.txt` to install all needed Python pa
 The icons are not provided in this repo for legal reasons. But they can be fetched with the below script.
 MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
 Following script needs to be run once to fetch and convert all icons:
-```
+```bash
 BASE_URL="https://www.meteoschweiz.admin.ch/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols"
 mkdir symbols
 cd symbols
