@@ -41,7 +41,7 @@ The icons are not provided in this repo for legal reasons. But they can be fetch
 MeteoSwiss provides the symbols as SVG files. How ever we need them as PNG files, preferably with a transparent background.
 Following script needs to be run once to fetch and convert all icons:
 ```bash
-BASE_URL="https://www.meteoschweiz.admin.ch/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols"
+BASE_URL="https://www.meteoschweiz.admin.ch/static/resources/weather-symbols"
 mkdir symbols
 cd symbols
 for i in {1..50}; do wget "$BASE_URL/$i.svg"; done
