@@ -8,7 +8,7 @@ import os
 from os.path import exists
 import json
 import datetime, pytz
-import measurementDataProvider
+# import measurementDataProvider
 
 # Meteoswiss only provides the data of the up to 7 days.
 maximumNumberOfDays = 7
@@ -479,34 +479,34 @@ class myHandler(BaseHTTPRequestHandler):
             #measuredTemperature = None
             
         #if measurement_data_db_host != None and measurement_data_db_port != None and measurement_data_db_user != None and measurement_data_db_password != None: 
-        if True:
-            logging.debug("Using Measurement Data to show real local data")
-            try:
-                #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=measurement_data_db_host, measurementDataDbPort=measurement_data_db_port, measurementDataDbUser=measurement_data_db_user, measurementDataDbPassword=measurement_data_db_password)
-                mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost='192.168.1.99', measurementDataDbPort=5086, measurementDataDbUser='meteoswiss-forecast', measurementDataDbPassword='wrewygewtcqxgewtcxeqgwq3')
-                
-                try:
-                    logging.debug("Fetching sensor data (rain)...")
-                    measuredRain = mdp.getMeasurement(sensor="regen_pro_h", groupingInterval=10, fill="previous")
-                except Exception as e:
-                    logging.error("An error occurred: %s" % e)
-                    measuredRain = None
-            
-                try:
-                    logging.debug("Fetching sensor data (temperature)...")
-                    #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
-                    #measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
-                    measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
-                except Exception as e:
-                    logging.error("An error occurred: %s" % e)
-                    measuredTemperature = None
-            except Exception as e:
-                logging.error("Failed to connect to Measurement Data DB: %s" % e)
-                measuredRain = None
-                measuredTemperature = None
-        else:
-            measuredRain = None
-            measuredTemperature = None
+#         if True:
+#             logging.debug("Using Measurement Data to show real local data")
+#             try:
+#                 #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=measurement_data_db_host, measurementDataDbPort=measurement_data_db_port, measurementDataDbUser=measurement_data_db_user, measurementDataDbPassword=measurement_data_db_password)
+#                 mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost='192.168.1.99', measurementDataDbPort=5086, measurementDataDbUser='meteoswiss-forecast', measurementDataDbPassword='wrewygewtcqxgewtcxeqgwq3')
+#                 
+#                 try:
+#                     logging.debug("Fetching sensor data (rain)...")
+#                     measuredRain = mdp.getMeasurement(sensor="regen_pro_h", groupingInterval=10, fill="previous")
+#                 except Exception as e:
+#                     logging.error("An error occurred: %s" % e)
+#                     measuredRain = None
+#             
+#                 try:
+#                     logging.debug("Fetching sensor data (temperature)...")
+#                     #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
+#                     #measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
+#                     measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
+#                 except Exception as e:
+#                     logging.error("An error occurred: %s" % e)
+#                     measuredTemperature = None
+#             except Exception as e:
+#                 logging.error("Failed to connect to Measurement Data DB: %s" % e)
+#                 measuredRain = None
+#                 measuredTemperature = None
+#         else:
+        measuredRain = None
+        measuredTemperature = None
 
         forecastData = meteoSwissForecast.collectData(forecastDataUrl=forecastDataUrl, daysToUse=daysToShow, timeFormat=timeFormat, dateFormat=dateFormat, localeAlias=locale)
         meteoSwissForecast.exportForecastData(forecastData, forecastFile + str(zipCode) + ".json")

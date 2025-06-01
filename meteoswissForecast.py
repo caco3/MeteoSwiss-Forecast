@@ -18,7 +18,7 @@ import logging
 import argparse
 import os.path
 import json
-import measurementDataProvider
+# import measurementDataProvider
 
 
 #from svglib.svglib import svg2rlg
@@ -840,33 +840,33 @@ if __name__ == '__main__':
 
     #if args.measurement_data_db_host != None and args.measurement_data_db_port != None and args.measurement_data_db_user != None and args.measurement_data_db_password != None:  
         logging.debug("Using Measurement Data to show real local data")
-    if True:
-        try:
-            #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=args.measurement_data_db_host, measurementDataDbPort=args.measurement_data_db_port, measurementDataDbUser=args.measurement_data_db_user, measurementDataDbPassword=args.measurement_data_db_password)
-
-            mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost='192.168.1.99', measurementDataDbPort=5086, measurementDataDbUser='meteoswiss-forecast', measurementDataDbPassword='wrewygewtcqxgewtcxeqgwq3')
-
-            try:
-                logging.debug("Fetching sensor data (rain)...")
-                measuredRain = mdp.getMeasurement(sensor="regen_pro_h", groupingInterval=10, fill="previous")
-            except Exception as e:
-                logging.error("An error occurred: %s" % e)
-                measuredRain = None
-        
-            try:
-                logging.debug("Fetching sensor data (temperature)...")
-                #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
-                measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
-                #measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
-            except Exception as e:
-                logging.error("An error occurred: %s" % e)
-                measuredTemperature = None
-        except Exception as e:
-            logging.error("Failed to connect to Measurement Data DB: %s" % e)
-            measuredRain = None
-            measuredTemperature = None
-    else:
-        measuredRain = None
-        measuredTemperature = None
+#     if True:
+#         try:
+#             #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=args.measurement_data_db_host, measurementDataDbPort=args.measurement_data_db_port, measurementDataDbUser=args.measurement_data_db_user, measurementDataDbPassword=args.measurement_data_db_password)
+# 
+#             mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost='192.168.1.99', measurementDataDbPort=5086, measurementDataDbUser='meteoswiss-forecast', measurementDataDbPassword='wrewygewtcqxgewtcxeqgwq3')
+# 
+#             try:
+#                 logging.debug("Fetching sensor data (rain)...")
+#                 measuredRain = mdp.getMeasurement(sensor="regen_pro_h", groupingInterval=10, fill="previous")
+#             except Exception as e:
+#                 logging.error("An error occurred: %s" % e)
+#                 measuredRain = None
+#         
+#             try:
+#                 logging.debug("Fetching sensor data (temperature)...")
+#                 #measuredTemperature = mdp.getMeasurement(sensor="aussentemperatur", groupingInterval=10, fill="previous")
+#                 measuredTemperature = mdp.getMeasurement(sensor="temperatur_vor_dem_haus", groupingInterval=10, fill="previous")
+#                 #measuredTemperature = mdp.getMeasurement(sensor="temperatur_im_garten_schopf", groupingInterval=10, fill="previous")
+#             except Exception as e:
+#                 logging.error("An error occurred: %s" % e)
+#                 measuredTemperature = None
+#         except Exception as e:
+#             logging.error("Failed to connect to Measurement Data DB: %s" % e)
+#             measuredRain = None
+#             measuredTemperature = None
+#     else:
+    measuredRain = None
+    measuredTemperature = None
 
     meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name, measuredRain=measuredRain, measuredTemperature=measuredTemperature)
