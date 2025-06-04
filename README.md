@@ -53,48 +53,28 @@ rm *.svg
 ## Notes
 The scripts use the timezone of `Europe/Zurich` and take the daylight saving into consideration. If this does not work for you, use the `utc-offset` parameter for an override.
 
-
-# Docker
-## Build it
-`docker build -t meteoswiss-forecast .`
-
-## Run it in a Docker Container
-1. Adjust the parameters in `Dockerfile`
-1. Build the docker image with `docker build -t meteoswiss-forecast .`
-1. Run it with `docker run -it --rm -v /volume1/web/MeteoSwiss-Forecast:/data --name my-meteoswiss-forecast -p 12080:80 --label=com.centurylinklabs.watchtower.enable=false meteoswiss-forecast`
-1. Call it in a webbrowser: `http://localhost:12080`
-
-## replace existing Docker Container (Update)
-```
-docker build -t meteoswiss-forecast .
-docker stop meteoswiss-forecast
-docker rm meteoswiss-forecast
-docker run -d -P --name meteoswiss-forecast -p 12080:80 -v /volume1/web/MeteoSwiss-Forecast:/data --label=com.centurylinklabs.watchtower.enable=false meteoswiss-forecast
-```
-
-
-# Legal
+## Legal
 The scripts only use publicly available data provided by the [website of MeteoSwiss](https://www.meteoschweiz.admin.ch/home.html?tab=overview). 
 
 The scripts are provided under the terms of the GPL V3.
 
-# TODO
+## TODO
  - Update Images in readme
  - Refactor code, split data extractor and plot generator code
 
 
  
-# Internals
-## Data Fetching Flow
+## Internals
+### Data Fetching Flow
 As of Nov. 2022, the workflow and URLs changed:
 
-### Get Overview Version
+#### Get Overview Version
 https://www.meteoschweiz.admin.ch/product/output/weather-pill/versions.json
 ```json
 {"currentVersionDirectory":"version__20221116_0707"}
 ```
 
-### Get Overview Data based on Zip code (contains city name)
+#### Get Overview Data based on Zip code (contains city name)
 https://www.meteoschweiz.admin.ch/product/output/weather-pill/version__20221116_0707/de/800100.json
 ```json
 {"path":"/lokalprognose/zuerich/8001.html","temp_high":"13","name":"Zürich","temp_low":"8","weather_symbol_id":"3"}

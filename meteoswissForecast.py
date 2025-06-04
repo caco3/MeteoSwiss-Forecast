@@ -406,7 +406,7 @@ class MeteoSwissForecast:
 
         nextPossibleRain = None
         for i in range(len(forecastData['rainfallVarianceMax'])):
-            print(i, forecastData['timestamps'][i], forecastData['formatedTime'][i], forecastData['rainfallVarianceMax'][i])
+            # print(i, forecastData['timestamps'][i], forecastData['formatedTime'][i], forecastData['rainfallVarianceMax'][i])
             if forecastData['rainfallVarianceMax'][i] > 0:
                 t = math.floor((forecastData['timestamps'][i] - timestampNow) / 3600)
                 if t > -1: # now or in future
@@ -545,7 +545,9 @@ class MeteoSwissForecast:
 
             timestampsCentered = [i + 1500 for i in data["timestamps"]]
             rainfallVarianceMin = np.subtract(np.array(data["rainfall"]), np.array(data["rainfallVarianceMin"]))
+            rainfallVarianceMin = [max(0, x) for x in rainfallVarianceMin]
             rainfallVarianceMax = np.subtract(np.array(data["rainfallVarianceMax"]), np.array(data["rainfall"]))
+            rainfallVarianceMax = [max(0, x) for x in rainfallVarianceMax]
             rainfallVarianceAxis.errorbar(timestampsCentered, data["rainfall"], yerr=[rainfallVarianceMin, rainfallVarianceMax],
                     fmt="none", elinewidth=1, alpha=0.5, ecolor='black', capsize=3)
             plt.ylim(0, rainScaleMax)
