@@ -537,7 +537,6 @@ class MeteoSwissForecast:
         rainAxis.add_patch(rainScaleBorder)
         rainScaleBorder.set_clip_on(False)
 
-
         # Rain variance
         if rainVariance:
             rainfallVarianceAxis = rainAxis.twinx()  # instantiate a second axes that shares the same x-axis
@@ -805,6 +804,7 @@ if __name__ == '__main__':
     parser.add_argument('--symbol-divisions', action='store', type=int, help='Only draw every x symbol (1 equals every 3 hours)', default=1)
     parser.add_argument('--city-name', action='store_true', help='Show the name of the city')
     parser.add_argument('--hide-data-copyright', action='store_false', help='Hide the data copyright. Please only do this for personal usage!')
+    parser.add_argument('--export-forecast-data', action='store_true', help='Export fetched forecast data to JSON file')
 
     parser.add_argument('--measurement-data-db-host', action='store', help='DB host providing real local data')
     parser.add_argument('--measurement-data-db-port', action='store', type=int, help='DB port')
@@ -847,11 +847,12 @@ if __name__ == '__main__':
         exit(1)
 
     #pprint.pprint(forecastData)
-    #meteoSwissForecast.exportForecastData(forecastData, "./forecast_" + args.zip_code + ".json")
+    if args.export_forecast_data:
+        meteoSwissForecast.exportForecastData(forecastData, "./forecast_" + str(args.zip_code) + ".json")
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
 
     #if args.measurement_data_db_host != None and args.measurement_data_db_port != None and args.measurement_data_db_user != None and args.measurement_data_db_password != None:  
-        logging.debug("Using Measurement Data to show real local data")
+    #    logging.debug("Using Measurement Data to show real local data")
 #     if True:
 #         try:
 #             #mdp = measurementDataProvider.MeasurementDataProvider(measurementDataDbHost=args.measurement_data_db_host, measurementDataDbPort=args.measurement_data_db_port, measurementDataDbUser=args.measurement_data_db_user, measurementDataDbPassword=args.measurement_data_db_password)
