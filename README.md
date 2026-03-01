@@ -48,6 +48,7 @@ for i in {1..50}; do wget "$BASE_URL/$i.svg"; done
 for i in {101..150}; do wget "$BASE_URL/$i.svg"; done
 for f in *.svg; do convert -background transparent -resize 256x256 -density 500 $f ${f%.svg}.png; done
 rm *.svg
+cd ..
 ```
 
 ## Notes
@@ -62,8 +63,6 @@ The scripts are provided under the terms of the GPL V3.
  - Update Images in readme
  - Refactor code, split data extractor and plot generator code
 
-
- 
 ## Internals
 ### Data Fetching Flow
 As of Nov. 2022, the workflow and URLs changed:
@@ -80,7 +79,6 @@ https://www.meteoschweiz.admin.ch/product/output/weather-pill/version__20221116_
 {"path":"/lokalprognose/zuerich/8001.html","temp_high":"13","name":"Zürich","temp_low":"8","weather_symbol_id":"3"}
 ```
 
- 
 ## Fetch Forecast Data
 ### Get Forecast version
 https://www.meteoschweiz.admin.ch/product/output/forecast-chart/versions.json
