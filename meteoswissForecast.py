@@ -81,7 +81,7 @@ class MeteoSwissForecast:
             # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
             ts = time.time()
             utcOffset = (datetime.datetime.fromtimestamp(ts) -
-                        datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+                        datetime.datetime.fromtimestamp(ts, datetime.UTC)).total_seconds()
             self.utcOffset = int(utcOffset / 3600) # in hours
         else:
             self.utcOffset = utcOffset
@@ -211,7 +211,7 @@ class MeteoSwissForecast:
         for day in range(0, self.days):
             # get day names
             timestamp = int(forecastData[day]["min_date"]) / 1000 + self.utcOffset * 3600
-            dayNames.append(datetime.datetime.utcfromtimestamp(timestamp).strftime(dateFormat)) # name of the day
+            dayNames.append(datetime.datetime.fromtimestamp(timestamp, datetime.UTC).strftime(dateFormat)) # name of the day
 
             # get timestamps (the same for all data)
             for hour in range(0, 24):
@@ -231,7 +231,7 @@ class MeteoSwissForecast:
 
         dayIndex = 0
         for timestamp in timestamps:
-            formatedTime.append(datetime.datetime.utcfromtimestamp(timestamp).strftime(timeFormat))
+            formatedTime.append(datetime.datetime.fromtimestamp(timestamp, datetime.UTC).strftime(timeFormat))
         rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall", 1)
         sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine", 1)
         temperature = self.dataExtractorNormal(forecastData, self.days, "temperature", 1)

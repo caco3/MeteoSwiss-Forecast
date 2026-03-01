@@ -43,7 +43,7 @@ def markGraphic(inputFile, outputFile, metaFile, x, y, w, h, fakeTime, test, utc
         # Get offset from local time to UTC, see also https://stackoverflow.com/questions/3168096/getting-computers-utc-offset-in-python
         ts = time.time()
         utcOffset = (datetime.datetime.fromtimestamp(ts) -
-                    datetime.datetime.utcfromtimestamp(ts)).total_seconds()
+                    datetime.datetime.fromtimestamp(ts, datetime.UTC)).total_seconds()
         utcOffset = int(utcOffset / 3600) # in hours
     else:
         utcOffset = utcOffset
