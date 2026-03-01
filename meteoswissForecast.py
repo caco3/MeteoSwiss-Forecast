@@ -544,12 +544,22 @@ class MeteoSwissForecast:
             rainfallVarianceAxis.axes.yaxis.set_visible(False)
 
             timestampsCentered = [i + 1500 for i in data["timestamps"]]
-            rainfallVarianceMin = np.subtract(np.array(data["rainfall"]), np.array(data["rainfallVarianceMin"]))
-            rainfallVarianceMin = [max(0, x) for x in rainfallVarianceMin]
-            rainfallVarianceMax = np.subtract(np.array(data["rainfallVarianceMax"]), np.array(data["rainfall"]))
-            rainfallVarianceMax = [max(0, x) for x in rainfallVarianceMax]
-            rainfallVarianceAxis.errorbar(timestampsCentered, data["rainfall"], yerr=[rainfallVarianceMin, rainfallVarianceMax],
-                    fmt="none", elinewidth=1, alpha=0.5, ecolor='black', capsize=3)
+            # Use original variance data directly
+            rainfallVarianceMin = data["rainfallVarianceMin"]
+            rainfallVarianceMax = data["rainfallVarianceMax"]
+
+            # Calculate variance ranges for errorbar
+            errorbarMin = np.subtract(np.array(data["rainfall"]), np.array(rainfallVarianceMin))
+            errorbarMin = [max(0, x) for x in errorbarMin]
+            errorbarMax = np.subtract(np.array(rainfallVarianceMax), np.array(data["rainfall"]))
+            errorbarMax = [max(0, x) for x in errorbarMax]
+
+            # rainfallVarianceAxis.errorbar(timestampsCentered, data["rainfall"], yerr=[errorbarMin, errorbarMax],
+                    # fmt="none", elinewidth=1, alpha=0.5, ecolor='darkgray', capsize=3)
+            # Add variance bar starting from rainfallVarianceMin to rainfallVarianceMax
+            varianceRange = np.subtract(rainfallVarianceMax, rainfallVarianceMin)
+            rainfallVarianceAxis.bar(timestampsCentered, varianceRange, 
+                    bottom=rainfallVarianceMin, width=3000, fill=False, edgecolor='darkgray', linewidth=1, alpha=0.5)
             plt.ylim(0, rainScaleMax)
 
 
