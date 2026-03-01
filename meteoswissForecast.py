@@ -198,6 +198,7 @@ class MeteoSwissForecast:
         formatedTime = []
         timestamps = []
         rainfall = []
+        sunshine = []
 
         logging.debug("Parsing data...")
         self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(forecastDataUrl)
@@ -253,6 +254,7 @@ class MeteoSwissForecast:
         self.data["temperature"] = temperature
         self.data["temperatureVarianceMin"] = temperatureVarianceMin
         self.data["temperatureVarianceMax"] = temperatureVarianceMax
+        self.data["sunshine"] = sunshine
         self.data["wind"] = wind
         self.data["windGustPeak"] = windGustPeak
         self.data["symbols"] = symbols
@@ -419,7 +421,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None, measuredRain=None, measuredTemperature=None):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None, measuredRain=None, measuredTemperature=None, showSunshine=False):
         if progressCallback:
             progressCallback("0%")
 
@@ -504,6 +506,11 @@ class MeteoSwissForecast:
         rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"], width=0, length=8)
         rainYRange = plt.ylim()
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
+
+        # Sunshine visualization as yellow background bars
+        if showSunshine and "sunshine" in data:
+            sunshineHeight = [min(s / 60.0, 0.98) * rainScaleMax for s in data["sunshine"]]
+            rainAxis.bar(data["timestamps"], sunshineHeight, width=3000, color='#e8b400', alpha=0.8, align='edge', zorder=1)
 
         if measuredRain:
             measRainTime, measRain = measuredRain
@@ -805,6 +812,7 @@ if __name__ == '__main__':
     parser.add_argument('--city-name', action='store_true', help='Show the name of the city')
     parser.add_argument('--hide-data-copyright', action='store_false', help='Hide the data copyright. Please only do this for personal usage!')
     parser.add_argument('--export-forecast-data', action='store_true', help='Export fetched forecast data to JSON file')
+    parser.add_argument('--show-sunshine', action='store_true', help='Show sunshine as yellow bars in the background')
 
     parser.add_argument('--measurement-data-db-host', action='store', help='DB host providing real local data')
     parser.add_argument('--measurement-data-db-port', action='store', type=int, help='DB port')
@@ -882,4 +890,4 @@ if __name__ == '__main__':
     measuredRain = None
     measuredTemperature = None
 
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name, measuredRain=measuredRain, measuredTemperature=measuredTemperature)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name, measuredRain=measuredRain, measuredTemperature=measuredTemperature, showSunshine=args.show_sunshine)
