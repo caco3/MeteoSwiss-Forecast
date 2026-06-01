@@ -18,6 +18,7 @@ import logging
 import argparse
 import os.path
 import json
+from scipy import interpolate
 # import measurementDataProvider
 
 
@@ -497,20 +498,31 @@ class MeteoSwissForecast:
                         rainBars[i].append(rain)
                     continue
 
-        rainAxis.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge')
-        bottom = [0] * len(rainBars[0])
-        for i in range(1, len(self.rainColorSteps)):
-            bottom = np.add(bottom, rainBars[i-1]).tolist()
-            rainAxis.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge')
-
         rainAxis.tick_params(axis='y', labelcolor=colors["rain-axis"], width=0, length=8)
         rainYRange = plt.ylim()
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
 
-        # Sunshine visualization as yellow background bars
+        # Sunshine visualization as line with filled area (drawn before rain to be behind)
         if showSunshine and "sunshine" in data:
-            sunshineHeight = [min(s / 60.0, 0.98) * rainScaleMax for s in data["sunshine"]]
-            rainAxis.bar(data["timestamps"], sunshineHeight, width=3000, color='#e8b400', alpha=0.8, align='edge', zorder=1)
+            maxSunshineHeight = 0.99 * rainScaleMax
+            sunshineHeight = [min(s / 60.0, 0.99) * maxSunshineHeight for s in data["sunshine"]]
+            # Create smooth spline interpolation
+            timestamps = np.array(data["timestamps"])
+            sunshine = np.array(sunshineHeight)
+            # Use spline interpolation for smooth curve
+            spline = interpolate.make_interp_spline(timestamps, sunshine, k=3)
+            smooth_timestamps = np.linspace(timestamps.min(), timestamps.max(), 300)
+            smooth_sunshine = spline(smooth_timestamps)
+            # Clamp to maximum height to prevent spline overshoot
+            smooth_sunshine = np.clip(smooth_sunshine, 0, maxSunshineHeight)
+            rainAxis.fill_between(smooth_timestamps, 0, smooth_sunshine, color='#fff3b0', alpha=0.5, zorder=1)
+            rainAxis.plot(smooth_timestamps, smooth_sunshine, color='#e8b400', linewidth=2, zorder=2)
+
+        rainAxis.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge', zorder=3)
+        bottom = [0] * len(rainBars[0])
+        for i in range(1, len(self.rainColorSteps)):
+            bottom = np.add(bottom, rainBars[i-1]).tolist()
+            rainAxis.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge', zorder=3)
 
         if measuredRain:
             measRainTime, measRain = measuredRain
@@ -565,7 +577,7 @@ class MeteoSwissForecast:
             # Add variance bar starting from rainfallVarianceMin to rainfallVarianceMax
             varianceRange = np.subtract(rainfallVarianceMax, rainfallVarianceMin)
             rainfallVarianceAxis.bar(timestampsCentered, varianceRange, 
-                    bottom=rainfallVarianceMin, width=3000, fill=False, edgecolor='darkgray', linewidth=1, alpha=0.5)
+                    bottom=rainfallVarianceMin, width=3000, fill=False, edgecolor='darkgray', linewidth=1, alpha=0.5, zorder=4)
             plt.ylim(0, rainScaleMax)
 
 

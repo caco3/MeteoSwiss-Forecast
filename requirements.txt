@@ -5,3 +5,4 @@ urllib3
 pytz
 pillow
 influxdb
+scipy
