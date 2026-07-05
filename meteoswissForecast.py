@@ -868,7 +868,8 @@ if __name__ == '__main__':
 
     #pprint.pprint(forecastData)
     if args.export_forecast_data:
-        meteoSwissForecast.exportForecastData(forecastData, "./forecast_" + str(args.zip_code) + ".json")
+        forecastDataFile = args.file.name.replace(".png", ".json")
+        meteoSwissForecast.exportForecastData(forecastData, forecastDataFile)
     #forecastData = meteoSwissForecast.importForecastData("./forecast.json")
 
     #if args.measurement_data_db_host != None and args.measurement_data_db_port != None and args.measurement_data_db_user != None and args.measurement_data_db_password != None:  
