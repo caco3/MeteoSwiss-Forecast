@@ -31,8 +31,8 @@ from scipy import interpolate
 #import tempfile
 
 
-# Meteoswiss only provides the data of the up to 7 days.
-maximumNumberOfDays = 7
+# Meteoswiss only provides the data of the up to 9 days.
+maximumNumberOfDays = 9
 
 
 # Returns the current UTC offset as integer value.
@@ -346,6 +346,14 @@ class MeteoSwissForecast:
         self.data["sunshine"] = sunshine
         self.data["symbols"] = symbols
         self.data["symbolsTimestamps"] = symbolsTimestamps
+
+        # Testing
+        #self.data["temperature"][-1] = -1
+        #self.data["temperature"][0] = -1
+        #try:
+            #self.data["temperature"][48] = -1
+        #except:
+            #pass
 
         # Sometimes the data contains None for some fields
         # We replace it by NaN
@@ -882,7 +890,7 @@ if __name__ == '__main__':
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the city to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written (PNG)')
     parser.add_argument('-m', '--meta', type=argparse.FileType('w'), required=True, help='File name with meta data to be written (JSON)')
-    parser.add_argument('--days-to-show', action='store', type=int, default=4, choices=range(1, 8), help='Number of days to show. If not set, use all data')
+    parser.add_argument('--days-to-show', action='store', type=int, default=4, choices=range(1, maximumNumberOfDays+1), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
     parser.add_argument('--utc-offset', action='store', type=int, help='Offset to UTC, only needed if system does not know it (eg in a docker container)', default=None)
