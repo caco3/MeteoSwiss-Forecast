@@ -7,6 +7,7 @@ import pytz
 import locale
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from matplotlib.collections import PatchCollection
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
@@ -123,14 +124,23 @@ class MeteoSwissForecast:
 
     def getCityName(self):
         logging.debug("Loading point metadata from %r..." % self.pointMetaUrl)
-        reader = csv.DictReader(self.getUrlText(self.pointMetaUrl), delimiter=';')
-        for row in reader:
-            if row.get('postal_code') == str(self.zipCode) and row.get('point_type_id') == '2':
-                self.pointId = row['point_id']
-                self.pointType = row['point_type_id']
-                self.cityName = row['point_name']
-                logging.debug("The location is: %s" % self.cityName)
-                return self.cityName
+        handle = self.getUrlText(self.pointMetaUrl)
+        try:
+            reader = csv.reader(handle, delimiter=';')
+            header = next(reader)
+            pointIdIdx = header.index('point_id')
+            pointTypeIdx = header.index('point_type_id')
+            postalCodeIdx = header.index('postal_code')
+            pointNameIdx = header.index('point_name')
+            for row in reader:
+                if row[postalCodeIdx] == str(self.zipCode) and row[pointTypeIdx] == '2':
+                    self.pointId = row[pointIdIdx]
+                    self.pointType = row[pointTypeIdx]
+                    self.cityName = row[pointNameIdx]
+                    logging.debug("The location is: %s" % self.cityName)
+                    return self.cityName
+        finally:
+            handle.close()
         raise Exception("Unknown zip code: %d" % self.zipCode)
 
 
@@ -212,31 +222,40 @@ class MeteoSwissForecast:
 
     def loadParameterSeries(self, url, parameter, asFloat=True):
         logging.debug("Loading %s from %r..." % (parameter, url))
-        reader = csv.DictReader(self.getUrlText(url), delimiter=';')
-        series = {}
-        for row in reader:
-            if row.get('point_id') != self.pointId:
-                continue
-            if row.get('point_type_id') != self.pointType:
-                continue
-            dateStr = row.get('Date')
-            value = row.get(parameter)
-            if not dateStr:
-                continue
-            if value is None or value == '':
-                parsed = None
-            else:
-                try:
-                    if asFloat:
-                        parsed = float(value)
-                    else:
-                        parsed = int(value)
-                except ValueError:
+        handle = self.getUrlText(url)
+        try:
+            reader = csv.reader(handle, delimiter=';')
+            header = next(reader)
+            pointIdIdx = header.index('point_id')
+            pointTypeIdx = header.index('point_type_id')
+            dateIdx = header.index('Date')
+            valueIdx = header.index(parameter)
+            series = {}
+            for row in reader:
+                if row[pointIdIdx] != self.pointId:
+                    continue
+                if row[pointTypeIdx] != self.pointType:
+                    continue
+                dateStr = row[dateIdx]
+                value = row[valueIdx]
+                if not dateStr:
+                    continue
+                if not value:
                     parsed = None
-            series[dateStr] = parsed
-        if not series:
-            raise Exception("No data found for point %s/%s in %s" % (self.pointId, self.pointType, url))
-        return series
+                else:
+                    try:
+                        if asFloat:
+                            parsed = float(value)
+                        else:
+                            parsed = int(value)
+                    except ValueError:
+                        parsed = None
+                series[dateStr] = parsed
+            if not series:
+                raise Exception("No data found for point %s/%s in %s" % (self.pointId, self.pointType, url))
+            return series
+        finally:
+            handle.close()
 
 
     def getModelCalculationTimestamp(self, forecastDataUrl):
@@ -614,7 +633,8 @@ class MeteoSwissForecast:
             maxSunshineHeight = 0.99 * rainScaleMax
             sunshineHeight = [min(s / 60.0, 0.99) * maxSunshineHeight for s in data["sunshine"]]
             if sunshineBars:
-                rainAxis.bar(data["timestamps"], sunshineHeight, width=3000, color='#e8b400', align='edge', zorder=1)
+                sunshinePatches = [Rectangle((t, 0), 3000, h, facecolor='#e8b400', edgecolor='none') for t, h in zip(data["timestamps"], sunshineHeight)]
+                rainAxis.add_collection(PatchCollection(sunshinePatches, match_original=True, zorder=1))
             else:
                 # Center the sunshine line/fill on each hour
                 lineTimestamps = [t + 1800 for t in data["timestamps"]]
@@ -630,11 +650,16 @@ class MeteoSwissForecast:
                 rainAxis.fill_between(smooth_timestamps, 0, smooth_sunshine, color='#fff3b0', alpha=0.5, zorder=1)
                 rainAxis.plot(smooth_timestamps, smooth_sunshine, color='#e8b400', linewidth=2, zorder=2)
 
-        rainAxis.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge', zorder=3)
+        rainPatches = []
         bottom = [0] * len(rainBars[0])
-        for i in range(1, len(self.rainColorSteps)):
-            bottom = np.add(bottom, rainBars[i-1]).tolist()
-            rainAxis.bar(data["timestamps"], rainBars[i], bottom=bottom, width=3000, color=self.rainColors[i], align='edge', zorder=3)
+        for i in range(0, len(self.rainColorSteps)):
+            for t, h, b in zip(data["timestamps"], rainBars[i], bottom):
+                if h > 0:
+                    rainPatches.append(Rectangle((t, b), 3000, h, facecolor=self.rainColors[i], edgecolor='none'))
+            if i < len(self.rainColorSteps) - 1:
+                bottom = [b + h for b, h in zip(bottom, rainBars[i])]
+        if rainPatches:
+            rainAxis.add_collection(PatchCollection(rainPatches, match_original=True, zorder=3))
 
         if measuredRain:
             measRainTime, measRain = measuredRain
