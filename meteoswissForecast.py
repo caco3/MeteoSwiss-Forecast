@@ -616,8 +616,10 @@ class MeteoSwissForecast:
             if sunshineBars:
                 rainAxis.bar(data["timestamps"], sunshineHeight, width=3000, color='#e8b400', align='edge', zorder=1)
             else:
+                # Center the sunshine line/fill on each hour
+                lineTimestamps = [t + 1800 for t in data["timestamps"]]
                 # Create smooth spline interpolation
-                timestamps = np.array(data["timestamps"])
+                timestamps = np.array(lineTimestamps)
                 sunshine = np.array(sunshineHeight)
                 # Use spline interpolation for smooth curve
                 spline = interpolate.make_interp_spline(timestamps, sunshine, k=3)
