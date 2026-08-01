@@ -141,18 +141,35 @@ class MeteoSwissForecast:
         candidates = [f for f in items.get('features', []) if f.get('assets')]
         if not candidates:
             raise Exception("No STAC items with assets found")
-        item = max(candidates, key=lambda f: f['properties']['datetime'])
-        self.stacItemId = item['id']
-        self.itemAssets = item['assets']
 
-        runs = set()
-        for key in self.itemAssets:
-            m = re.search(r'\.(\d{12})\.\w+\.csv$', key)
-            if m:
-                runs.add(m.group(1))
-        if not runs:
-            raise Exception("No forecast runs found in STAC item")
-        self.latestRun = max(runs)
+        # Choose the latest run that has every parameter we need
+        requiredParameters = [
+            'tre200h0', 'treq10h0', 'treq90h0', 'rre150h0',
+            'rreq10h0', 'rreq90h0', 'fu3010h0', 'fu3010h1',
+            'sre000h0', 'jww003i0',
+        ]
+        bestRun = None
+        bestItem = None
+        for item in candidates:
+            runs = {}
+            for key in item['assets']:
+                m = re.search(r'\.(\d{12})\.(\w+)\.csv$', key)
+                if not m:
+                    continue
+                run, parameter = m.group(1), m.group(2)
+                runs.setdefault(run, set()).add(parameter)
+            for run, parameters in runs.items():
+                if all(p in parameters for p in requiredParameters):
+                    if bestRun is None or run > bestRun:
+                        bestRun = run
+                        bestItem = item
+
+        if bestRun is None:
+            raise Exception("No forecast run with all required parameters found")
+
+        self.stacItemId = bestItem['id']
+        self.itemAssets = bestItem['assets']
+        self.latestRun = bestRun
         logging.debug("Using forecast run %r" % self.latestRun)
         return self.latestRun
 
@@ -268,10 +285,12 @@ class MeteoSwissForecast:
         if not allDates:
             raise Exception("No forecast data available for point %s" % self.pointId)
 
-        # Prefer to start on a 00:00 UTC full-day boundary
+        # Prefer to start on a 00:00 local-time full-day boundary
         startIndex = 0
         for i, date in enumerate(allDates):
-            if date.endswith('0000'):
+            utcTs = self._parseDate(date)
+            localTs = utcTs + self.utcOffset * 3600
+            if localTs % 86400 == 0:
                 startIndex = i
                 break
 
