@@ -12,6 +12,7 @@ from matplotlib.patches import Circle, Rectangle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
 import concurrent.futures
+import functools
 import matplotlib.patheffects as path_effects
 from matplotlib.ticker import FormatStrFormatter
 import numpy as np
@@ -35,6 +36,23 @@ from scipy import interpolate
 
 # Meteoswiss only provides the data of the up to 9 days.
 maximumNumberOfDays = 9
+
+
+def _download(url):
+    logging.debug("Downloading %r..." % url)
+    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    try:
+        with urlopen(req) as response:
+            content = response.read()
+    except Exception as e:
+        raise Exception("Failed to fetch URL (%r): %r" % (url, e))
+    logging.debug("Download completed %r: %.2f MB" % (url, len(content) / (1024 * 1024)))
+    return content
+
+
+@functools.lru_cache(maxsize=12)
+def _download_cached(url):
+    return _download(url)
 
 
 # Returns the current UTC offset as integer value.
@@ -92,29 +110,11 @@ class MeteoSwissForecast:
 
 
     def getUrlJson(self, url):
-        logging.debug("Downloading %r..." % url)
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        try:
-            with urlopen(req) as response:
-                content = response.read()
-        except Exception as e:
-            raise Exception("Failed to fetch URL (%r): %r" % (url, e))
-
-        logging.debug("Download completed %r: %.2f MB" % (url, len(content) / (1024 * 1024)))
-        return json.loads(content.decode('utf-8'))
+        return json.loads(_download(url).decode('utf-8'))
 
 
     def getUrlText(self, url):
-        logging.debug("Downloading %r..." % url)
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        try:
-            with urlopen(req) as response:
-                content = response.read()
-        except Exception as e:
-            raise Exception("Failed to fetch URL (%r): %r" % (url, e))
-
-        logging.debug("Download completed %r: %.2f MB" % (url, len(content) / (1024 * 1024)))
-        return io.TextIOWrapper(io.BytesIO(content), encoding='latin1')
+        return io.TextIOWrapper(io.BytesIO(_download_cached(url)), encoding='latin1')
 
 
     def getForecastDataUrl(self):
@@ -268,7 +268,7 @@ class MeteoSwissForecast:
         return int(calendar.timegm(datetime.datetime.strptime(run, "%Y%m%d%H%M").timetuple()))
 
 
-    def collectData(self, forecastDataUrl=None, daysToUse=7, timeFormat="%H:%M", dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
+    def collectData(self, forecastDataUrl=None, daysToUse=7, timeFormat="%H:%M", dateFormat="%A, %-d. %B", localeAlias="en_US.utf8", showSunshine=False, rainVariance=False):
         run = self._extractRun(forecastDataUrl)
         if run is None:
             run = self.getLatestForecastRun()
@@ -287,13 +287,15 @@ class MeteoSwissForecast:
             ('temperatureVarianceMin', 'treq10h0', True),
             ('temperatureVarianceMax', 'treq90h0', True),
             ('rainfall', 'rre150h0', True),
-            ('rainfallVarianceMin', 'rreq10h0', True),
             ('rainfallVarianceMax', 'rreq90h0', True),
             ('wind', 'fu3010h0', True),
-            ('windGustPeak', 'fu3010h1', True),
-            ('sunshine', 'sre000h0', False),
             ('symbols', 'jww003i0', False),
         ]
+
+        if rainVariance:
+            parameterConfig.append(('rainfallVarianceMin', 'rreq10h0', True))
+        if showSunshine:
+            parameterConfig.append(('sunshine', 'sre000h0', False))
 
         series = {}
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -359,13 +361,12 @@ class MeteoSwissForecast:
 
         rainfall = [series['rainfall'].get(d) for d in selectedDates]
         temperature = [series['temperature'].get(d) for d in selectedDates]
-        rainfallVarianceMin = [series['rainfallVarianceMin'].get(d) for d in selectedDates]
+        rainfallVarianceMin = [series['rainfallVarianceMin'].get(d) for d in selectedDates] if rainVariance else [None] * len(selectedDates)
         rainfallVarianceMax = [series['rainfallVarianceMax'].get(d) for d in selectedDates]
         temperatureVarianceMin = [series['temperatureVarianceMin'].get(d) for d in selectedDates]
         temperatureVarianceMax = [series['temperatureVarianceMax'].get(d) for d in selectedDates]
         wind = [series['wind'].get(d) for d in selectedDates]
-        windGustPeak = [series['windGustPeak'].get(d) for d in selectedDates]
-        sunshine = [series['sunshine'].get(d) for d in selectedDates]
+        sunshine = [series['sunshine'].get(d) for d in selectedDates] if showSunshine else [None] * len(selectedDates)
 
         symbols = []
         symbolsTimestamps = []
@@ -391,7 +392,6 @@ class MeteoSwissForecast:
         self.data["temperatureVarianceMin"] = temperatureVarianceMin
         self.data["temperatureVarianceMax"] = temperatureVarianceMax
         self.data["wind"] = wind
-        self.data["windGustPeak"] = windGustPeak
         self.data["sunshine"] = sunshine
         self.data["symbols"] = symbols
         self.data["symbolsTimestamps"] = symbolsTimestamps
@@ -1007,7 +1007,7 @@ if __name__ == '__main__':
         exit(1)
 
     try:
-        forecastData = meteoSwissForecast.collectData(forecastDataUrl=forecastDataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale)
+        forecastData = meteoSwissForecast.collectData(forecastDataUrl=forecastDataUrl, daysToUse=args.days_to_show, timeFormat=args.time_format, dateFormat=args.date_format, localeAlias=args.locale, showSunshine=args.show_sunshine, rainVariance=args.rain_variance)
     except Exception as e:
         logging.error("An error occurred: %s" % e)
         exit(1)
