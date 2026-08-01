@@ -286,11 +286,13 @@ class MeteoSwissForecast:
             raise Exception("No forecast data available for point %s" % self.pointId)
 
         # Prefer to start on a 00:00 local-time full-day boundary
+        # (the CSV Date is the end of the hour, so the display time is one hour earlier)
         startIndex = 0
         for i, date in enumerate(allDates):
             utcTs = self._parseDate(date)
             localTs = utcTs + self.utcOffset * 3600
-            if localTs % 86400 == 0:
+            displayTs = localTs - 3600
+            if displayTs % 86400 == 0:
                 startIndex = i
                 break
 
@@ -320,9 +322,10 @@ class MeteoSwissForecast:
         for date in selectedDates:
             utcTs = self._parseDate(date)
             localTs = utcTs + self.utcOffset * 3600
-            dayTimestamps[date] = localTs
-            timestamps.append(localTs)
-            formatedTime.append(datetime.datetime.fromtimestamp(localTs, datetime.UTC).strftime(timeFormat))
+            displayTs = localTs - 3600
+            dayTimestamps[date] = displayTs
+            timestamps.append(displayTs)
+            formatedTime.append(datetime.datetime.fromtimestamp(displayTs, datetime.UTC).strftime(timeFormat))
 
         for day in range(0, self.days):
             dayNames.append(datetime.datetime.fromtimestamp(timestamps[day * 24], datetime.UTC).strftime(dateFormat))
@@ -504,7 +507,8 @@ class MeteoSwissForecast:
         nextRain = None
         for i in range(len(forecastData['rainfall'])):
             if forecastData['rainfall'][i] > 0:
-                t = math.floor((forecastData['timestamps'][i] - timestampNow) / 3600)
+                # timestamps mark the start of the hour, add 3600 to get the end
+                t = math.floor((forecastData['timestamps'][i] + 3600 - timestampNow) / 3600)
                 if t > -1: # now or in future
                     nextRain = t
                     break
@@ -513,7 +517,8 @@ class MeteoSwissForecast:
         for i in range(len(forecastData['rainfallVarianceMax'])):
             # print(i, forecastData['timestamps'][i], forecastData['formatedTime'][i], forecastData['rainfallVarianceMax'][i])
             if forecastData['rainfallVarianceMax'][i] > 0:
-                t = math.floor((forecastData['timestamps'][i] - timestampNow) / 3600)
+                # timestamps mark the start of the hour, add 3600 to get the end
+                t = math.floor((forecastData['timestamps'][i] + 3600 - timestampNow) / 3600)
                 if t > -1: # now or in future
                     nextPossibleRain = t
                     break
@@ -524,7 +529,7 @@ class MeteoSwissForecast:
     """
     Generates the graphic containing the forecast
     """
-    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None, measuredRain=None, measuredTemperature=None, showSunshine=False):
+    def generateGraph(self, data=None, outputFilename=None, timeDivisions=6, graphWidth=1920, graphHeight=300, darkMode=False, rainVariance=False, minMaxTemperature=False, fontSize=12, symbolZoom=1.0, symbolDivision=1, showCityName=False, hideDataCopyright=False, writeMetaData=None, progressCallback=None, measuredRain=None, measuredTemperature=None, showSunshine=False, sunshineBars=False):
         if progressCallback:
             progressCallback("0%")
 
@@ -604,21 +609,24 @@ class MeteoSwissForecast:
         rainYRange = plt.ylim()
         rainScaleMax = max(data["rainfall"]) + 1 # Add a bit to make sure we do not bang our head
 
-        # Sunshine visualization as line with filled area (drawn before rain to be behind)
+        # Sunshine visualization (drawn before rain to be behind)
         if showSunshine and "sunshine" in data:
             maxSunshineHeight = 0.99 * rainScaleMax
             sunshineHeight = [min(s / 60.0, 0.99) * maxSunshineHeight for s in data["sunshine"]]
-            # Create smooth spline interpolation
-            timestamps = np.array(data["timestamps"])
-            sunshine = np.array(sunshineHeight)
-            # Use spline interpolation for smooth curve
-            spline = interpolate.make_interp_spline(timestamps, sunshine, k=3)
-            smooth_timestamps = np.linspace(timestamps.min(), timestamps.max(), 300)
-            smooth_sunshine = spline(smooth_timestamps)
-            # Clamp to maximum height to prevent spline overshoot
-            smooth_sunshine = np.clip(smooth_sunshine, 0, maxSunshineHeight)
-            rainAxis.fill_between(smooth_timestamps, 0, smooth_sunshine, color='#fff3b0', alpha=0.5, zorder=1)
-            rainAxis.plot(smooth_timestamps, smooth_sunshine, color='#e8b400', linewidth=2, zorder=2)
+            if sunshineBars:
+                rainAxis.bar(data["timestamps"], sunshineHeight, width=3000, color='#e8b400', align='edge', zorder=1)
+            else:
+                # Create smooth spline interpolation
+                timestamps = np.array(data["timestamps"])
+                sunshine = np.array(sunshineHeight)
+                # Use spline interpolation for smooth curve
+                spline = interpolate.make_interp_spline(timestamps, sunshine, k=3)
+                smooth_timestamps = np.linspace(timestamps.min(), timestamps.max(), 300)
+                smooth_sunshine = spline(smooth_timestamps)
+                # Clamp to maximum height to prevent spline overshoot
+                smooth_sunshine = np.clip(smooth_sunshine, 0, maxSunshineHeight)
+                rainAxis.fill_between(smooth_timestamps, 0, smooth_sunshine, color='#fff3b0', alpha=0.5, zorder=1)
+                rainAxis.plot(smooth_timestamps, smooth_sunshine, color='#e8b400', linewidth=2, zorder=2)
 
         rainAxis.bar(data["timestamps"], rainBars[0], width=3000, color=self.rainColors[0], align='edge', zorder=3)
         bottom = [0] * len(rainBars[0])
@@ -926,7 +934,8 @@ if __name__ == '__main__':
     parser.add_argument('--city-name', action='store_true', help='Show the name of the city')
     parser.add_argument('--hide-data-copyright', action='store_false', help='Hide the data copyright. Please only do this for personal usage!')
     parser.add_argument('--export-forecast-data', action='store_true', help='Export fetched forecast data to JSON file')
-    parser.add_argument('--show-sunshine', action='store_true', help='Show sunshine as yellow bars in the background')
+    parser.add_argument('--show-sunshine', action='store_true', help='Show sunshine in the background')
+    parser.add_argument('--sunshine-bars', action='store_true', help='Show sunshine as bars instead of a smooth line/fill')
 
     parser.add_argument('--measurement-data-db-host', action='store', help='DB host providing real local data')
     parser.add_argument('--measurement-data-db-port', action='store', type=int, help='DB port')
@@ -1005,4 +1014,4 @@ if __name__ == '__main__':
     measuredRain = None
     measuredTemperature = None
 
-    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name, measuredRain=measuredRain, measuredTemperature=measuredTemperature, showSunshine=args.show_sunshine)
+    meteoSwissForecast.generateGraph(data=forecastData, outputFilename=args.file.name, timeDivisions=args.time_divisions, graphWidth=args.width, graphHeight=args.height, darkMode=args.dark_mode, rainVariance=args.rain_variance, minMaxTemperature=args.min_max_temperatures, fontSize=args.font_size, symbolZoom=args.symbol_zoom, symbolDivision=args.symbol_divisions, showCityName=args.city_name, hideDataCopyright=args.hide_data_copyright, writeMetaData=args.meta.name, measuredRain=measuredRain, measuredTemperature=measuredTemperature, showSunshine=args.show_sunshine, sunshineBars=args.sunshine_bars)
