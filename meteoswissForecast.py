@@ -11,6 +11,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 import matplotlib.lines as mlines
+import concurrent.futures
 import matplotlib.patheffects as path_effects
 from matplotlib.ticker import FormatStrFormatter
 import numpy as np
@@ -94,24 +95,26 @@ class MeteoSwissForecast:
         logging.debug("Downloading %r..." % url)
         req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         try:
-            data = urlopen(req).read().decode('utf-8')
+            with urlopen(req) as response:
+                content = response.read()
         except Exception as e:
             raise Exception("Failed to fetch URL (%r): %r" % (url, e))
 
-        logging.debug("Download completed")
-        return json.loads(data)
+        logging.debug("Download completed %r: %.2f MB" % (url, len(content) / (1024 * 1024)))
+        return json.loads(content.decode('utf-8'))
 
 
     def getUrlText(self, url):
         logging.debug("Downloading %r..." % url)
         req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         try:
-            response = urlopen(req)
+            with urlopen(req) as response:
+                content = response.read()
         except Exception as e:
             raise Exception("Failed to fetch URL (%r): %r" % (url, e))
 
-        logging.debug("Download completed")
-        return io.TextIOWrapper(response, encoding='latin1')
+        logging.debug("Download completed %r: %.2f MB" % (url, len(content) / (1024 * 1024)))
+        return io.TextIOWrapper(io.BytesIO(content), encoding='latin1')
 
 
     def getForecastDataUrl(self):
@@ -289,15 +292,20 @@ class MeteoSwissForecast:
             ('wind', 'fu3010h0', True),
             ('windGustPeak', 'fu3010h1', True),
             ('sunshine', 'sre000h0', False),
+            ('symbols', 'jww003i0', False),
         ]
 
         series = {}
-        for field, parameter, asFloat in parameterConfig:
-            url = self.getParameterAssetUrl(parameter, run)
-            series[field] = self.loadParameterSeries(url, parameter, asFloat)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(self.loadParameterSeries, self.getParameterAssetUrl(parameter, run), parameter, asFloat): field
+                for field, parameter, asFloat in parameterConfig
+            }
+            for future in concurrent.futures.as_completed(futures):
+                field = futures[future]
+                series[field] = future.result()
 
-        symbolsUrl = self.getParameterAssetUrl('jww003i0', run)
-        symbolsSeries = self.loadParameterSeries(symbolsUrl, 'jww003i0', False)
+        symbolsSeries = series['symbols']
 
         # Use the temperature time series as the reference time line
         allDates = sorted(series['temperature'].keys())
@@ -643,7 +651,7 @@ class MeteoSwissForecast:
                 sunshine = np.array(sunshineHeight)
                 # Use spline interpolation for smooth curve
                 spline = interpolate.make_interp_spline(timestamps, sunshine, k=3)
-                smooth_timestamps = np.linspace(timestamps.min(), timestamps.max(), 300)
+                smooth_timestamps = np.linspace(timestamps.min(), timestamps.max(), 100)
                 smooth_sunshine = spline(smooth_timestamps)
                 # Clamp to maximum height to prevent spline overshoot
                 smooth_sunshine = np.clip(smooth_sunshine, 0, maxSunshineHeight)
