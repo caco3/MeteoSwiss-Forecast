@@ -15,6 +15,10 @@ from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import math
 import logging
+import csv
+import calendar
+import re
+import io
 import argparse
 import os.path
 import json
@@ -27,8 +31,8 @@ from scipy import interpolate
 #import tempfile
 
 
-# Meteoswiss only provides the data of the up to 7 days.
-maximumNumberOfDays = 7
+# Meteoswiss only provides the data of the up to 9 days.
+maximumNumberOfDays = 9
 
 
 # Returns the current UTC offset as integer value.
@@ -41,13 +45,8 @@ def getCurrentUtcOffset():
 
 class MeteoSwissForecast:
     # Constants
-    domain = "http://www.meteoschweiz.admin.ch"
-
-    # Location Information URL
-    pillUrlPrefix = "product/output/weather-pill"
-    
-    # Forecast Information URL
-    chartUrlPrefix = "product/output/forecast-chart"
+    stacCollectionUrl = "https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-local-forecasting"
+    pointMetaUrl = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-local-forecasting/ogd-local-forecasting_meta_point.csv"
 
     #symbolsUrlPrefix = "/etc.clientlibs/internet/clientlibs/meteoswiss/resources/assets/images/icons/meteo/weather-symbols/"
     #symbolsUrlSuffix = ".svg"
@@ -102,148 +101,235 @@ class MeteoSwissForecast:
         return json.loads(data)
 
 
-    """
-    Gets the Forecast Data URL (chart)
-    The version can get fetched from https://www.meteoschweiz.admin.ch/product/output/forecast-chart/versions.json
-    The Forecast Data URL then is: https://www.meteoschweiz.admin.ch/product/output/forecast-chart/version__20221116_0709/de/800100.json
-    
-    The 8001 represents the Zip Code of the location you want
-    The 20221116 is the current date
-    The 0709 is the time the forecast model got run by Meteo Swiss
-    """
+    def getUrlText(self, url):
+        logging.debug("Downloading %r..." % url)
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        try:
+            response = urlopen(req)
+        except Exception as e:
+            raise Exception("Failed to fetch URL (%r): %r" % (url, e))
+
+        logging.debug("Download completed")
+        return io.TextIOWrapper(response, encoding='latin1')
+
+
     def getForecastDataUrl(self):
-        chartVersionUrl = self.domain + "/" + self.chartUrlPrefix + "/versions.json"
-        logging.debug("Downloading chart version from %r..." % chartVersionUrl)
-        chartVersion = self.getUrlJson(chartVersionUrl)
-        # {'currentVersionDirectory': 'version__20221116_0810'}
-        logging.debug(chartVersion)
-        
-        version = chartVersion['currentVersionDirectory']
-        # version__20221116_0810
-        logging.debug(version)
-        
-        forecastDataUrl = self.domain + "/" + self.chartUrlPrefix + "/" + version + "/de/" + str(self.zipCode) + "00" + ".json" 
-        
-        logging.debug("The data URL is: %r" % forecastDataUrl)
-        return forecastDataUrl
+        if not hasattr(self, 'latestRun') or not self.latestRun:
+            self.getLatestForecastRun()
+        href = self.getParameterAssetUrl('tre200h0', self.latestRun)
+        logging.debug("The data URL is: %r" % href)
+        return href
 
 
-    """
-    Fetches the meta data file (pill) and extracts the city name
-    This is a 2 step fetch:
-     1. Get the pill version information from https://www.meteoschweiz.admin.ch/product/output/weather-pill/versions.json
-     2. Extract the version
-     3. Get the pill from https://www.meteoschweiz.admin.ch/product/output/weather-pill/version__20221116_0707/de/800100.json
-     
-    The 8001 represents the Zip Code of the location you want
-    The 20221116 is the current date
-    The 0707 is the time the forecast model got run by Meteo Swiss
-    """
     def getCityName(self):
-        pillVersionUrl = self.domain + "/" + self.pillUrlPrefix + "/versions.json"
-        logging.debug("Downloading pill version from %r..." % pillVersionUrl)
-        pillVersion = self.getUrlJson(pillVersionUrl)
-        # {'currentVersionDirectory': 'version__20221116_0740'}
-        logging.debug(pillVersion)
-        
-        version = pillVersion['currentVersionDirectory']
-        # version__20221116_0740
-        logging.debug(version)
-        
-        pillUrl = self.domain + "/" + self.pillUrlPrefix + "/" + version + "/de/" + str(self.zipCode) + "00" + ".json"
-        logging.debug("Downloading city name data from %s..." % pillUrl)
-        pill = self.getUrlJson(pillUrl)
-        # {'path': '/lokalprognose/zuerich/8001.html', 'temp_high': '13', 'name': 'Zürich', 'temp_low': '8', 'weather_symbol_id': '4'}
-        logging.debug(pill)
-        
-        logging.debug("The location is: %s" % pill["name"])
-        return pill["name"]
+        logging.debug("Loading point metadata from %r..." % self.pointMetaUrl)
+        reader = csv.DictReader(self.getUrlText(self.pointMetaUrl), delimiter=';')
+        for row in reader:
+            if row.get('postal_code') == str(self.zipCode) and row.get('point_type_id') == '2':
+                self.pointId = row['point_id']
+                self.pointType = row['point_type_id']
+                self.cityName = row['point_name']
+                logging.debug("The location is: %s" % self.cityName)
+                return self.cityName
+        raise Exception("Unknown zip code: %d" % self.zipCode)
 
 
-    """
-    Extracts the timestamp (in UTC) of when the model was calculated by meteoSwiss
-    """
+    def getLatestForecastRun(self):
+        itemsUrl = self.stacCollectionUrl + "/items"
+        logging.debug("Loading STAC items from %r..." % itemsUrl)
+        items = self.getUrlJson(itemsUrl)
+        candidates = [f for f in items.get('features', []) if f.get('assets')]
+        if not candidates:
+            raise Exception("No STAC items with assets found")
+        item = max(candidates, key=lambda f: f['properties']['datetime'])
+        self.stacItemId = item['id']
+        self.itemAssets = item['assets']
+
+        runs = set()
+        for key in self.itemAssets:
+            m = re.search(r'\.(\d{12})\.\w+\.csv$', key)
+            if m:
+                runs.add(m.group(1))
+        if not runs:
+            raise Exception("No forecast runs found in STAC item")
+        self.latestRun = max(runs)
+        logging.debug("Using forecast run %r" % self.latestRun)
+        return self.latestRun
+
+
+    def getParameterAssetUrl(self, parameter, run=None):
+        if not hasattr(self, 'itemAssets') or not self.itemAssets:
+            self.getLatestForecastRun()
+        candidates = {}
+        for key, asset in self.itemAssets.items():
+            if not key.endswith('.' + parameter + '.csv'):
+                continue
+            m = re.search(r'\.(\d{12})\.' + parameter + r'\.csv$', key)
+            if not m:
+                continue
+            candidates[m.group(1)] = asset['href']
+        if not candidates:
+            raise Exception("No asset found for parameter %r" % parameter)
+        if run is not None:
+            if run in candidates:
+                return candidates[run]
+            raise Exception("Run %r not available for parameter %r" % (run, parameter))
+        return candidates[max(candidates)]
+
+
+    def _extractRun(self, forecastDataUrl):
+        if forecastDataUrl is None:
+            return None
+        # Accept a raw 12 digit run or a full asset URL
+        if re.match(r'^\d{12}$', str(forecastDataUrl)):
+            return forecastDataUrl
+        m = re.search(r'\.(\d{12})\.\w+\.csv', str(forecastDataUrl))
+        if m:
+            return m.group(1)
+        return None
+
+
+    def _parseDate(self, dateStr):
+        return calendar.timegm(datetime.datetime.strptime(dateStr, "%Y%m%d%H%M").timetuple())
+
+
+    def loadParameterSeries(self, url, parameter, asFloat=True):
+        logging.debug("Loading %s from %r..." % (parameter, url))
+        reader = csv.DictReader(self.getUrlText(url), delimiter=';')
+        series = {}
+        for row in reader:
+            if row.get('point_id') != self.pointId:
+                continue
+            if row.get('point_type_id') != self.pointType:
+                continue
+            dateStr = row.get('Date')
+            value = row.get(parameter)
+            if not dateStr:
+                continue
+            if value is None or value == '':
+                parsed = None
+            else:
+                try:
+                    if asFloat:
+                        parsed = float(value)
+                    else:
+                        parsed = int(value)
+                except ValueError:
+                    parsed = None
+            series[dateStr] = parsed
+        if not series:
+            raise Exception("No data found for point %s/%s in %s" % (self.pointId, self.pointType, url))
+        return series
+
+
     def getModelCalculationTimestamp(self, forecastDataUrl):
-        arr = forecastDataUrl.split("__")
-        # Example of arr[1]: 20200609_0913/de/862000.json
-        # Note that the time is in UTC!
-        arr = arr[1].split("/")
-        # Example of arr[0]: 20200609_0913
-        #return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple()) + self.utcOffset * 3600)
-        return int(time.mktime(datetime.datetime.strptime(arr[0],"%Y%m%d_%H%M").timetuple()))
+        run = self._extractRun(forecastDataUrl)
+        if run is None:
+            run = self.getLatestForecastRun()
+        return int(calendar.timegm(datetime.datetime.strptime(run, "%Y%m%d%H%M").timetuple()))
 
 
-    """
-    Loads the Forecast Data file and stores it as a dict of lists
-    """
     def collectData(self, forecastDataUrl=None, daysToUse=7, timeFormat="%H:%M", dateFormat="%A, %-d. %B", localeAlias="en_US.utf8"):
-        forecastData = self.getUrlJson(forecastDataUrl)
-        #print(forecastData)
+        run = self._extractRun(forecastDataUrl)
+        if run is None:
+            run = self.getLatestForecastRun()
+        else:
+            self.latestRun = run
+            if not hasattr(self, 'itemAssets') or not self.itemAssets:
+                self.getLatestForecastRun()
 
-        # Meteoswiss only provides the data of the up to 7 days.
         logging.debug("%r, %r" % (daysToUse, maximumNumberOfDays))
         if daysToUse > maximumNumberOfDays:
             daysToUse = maximumNumberOfDays
             logging.warning("Limiting days to be shown to %d days!" % maximumNumberOfDays)
 
-        self.days = len(forecastData)
+        parameterConfig = [
+            ('temperature', 'tre200h0', True),
+            ('temperatureVarianceMin', 'treq10h0', True),
+            ('temperatureVarianceMax', 'treq90h0', True),
+            ('rainfall', 'rre150h0', True),
+            ('rainfallVarianceMin', 'rreq10h0', True),
+            ('rainfallVarianceMax', 'rreq90h0', True),
+            ('wind', 'fu3010h0', True),
+            ('windGustPeak', 'fu3010h1', True),
+            ('sunshine', 'sre000h0', False),
+        ]
+
+        series = {}
+        for field, parameter, asFloat in parameterConfig:
+            url = self.getParameterAssetUrl(parameter, run)
+            series[field] = self.loadParameterSeries(url, parameter, asFloat)
+
+        symbolsUrl = self.getParameterAssetUrl('jww003i0', run)
+        symbolsSeries = self.loadParameterSeries(symbolsUrl, 'jww003i0', False)
+
+        # Use the temperature time series as the reference time line
+        allDates = sorted(series['temperature'].keys())
+        if not allDates:
+            raise Exception("No forecast data available for point %s" % self.pointId)
+
+        # Prefer to start on a 00:00 UTC full-day boundary
+        startIndex = 0
+        for i, date in enumerate(allDates):
+            if date.endswith('0000'):
+                startIndex = i
+                break
+
+        availableDates = allDates[startIndex:]
+        fullDays = max(1, len(availableDates) // 24)
+        self.days = min(daysToUse, fullDays, maximumNumberOfDays)
         logging.debug("The forecast contains data for %d days" % self.days)
-        if daysToUse != None:
-            if self.days < daysToUse:
-                daysToUse = self.days
-            if self.days != daysToUse:
-                logging.debug("But going only to use the first %d days" % daysToUse)
-            self.days = daysToUse
 
-        dayNames = []
-        formatedTime = []
-        timestamps = []
-        rainfall = []
-        sunshine = []
+        wantedCount = self.days * 24
+        if self.days < maximumNumberOfDays and len(availableDates) > wantedCount:
+            wantedCount += 1
+        selectedDates = availableDates[:wantedCount]
+        if not selectedDates:
+            raise Exception("No forecast data available for the requested days")
 
-        logging.debug("Parsing data...")
-        self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(forecastDataUrl)
-        ## TODO add zip code and location name to data dict
+        self.data["modelCalculationTimestamp"] = self.getModelCalculationTimestamp(forecastDataUrl if forecastDataUrl else run)
 
         try:
             locale.setlocale(locale.LC_ALL, localeAlias)
         except Exception as e:
             logging.warning("Unable to uses locale \"%s\": %s" % (localeAlias, e))
 
+        dayNames = []
+        formatedTime = []
+        timestamps = []
+        dayTimestamps = {}
+        for date in selectedDates:
+            utcTs = self._parseDate(date)
+            localTs = utcTs + self.utcOffset * 3600
+            dayTimestamps[date] = localTs
+            timestamps.append(localTs)
+            formatedTime.append(datetime.datetime.fromtimestamp(localTs, datetime.UTC).strftime(timeFormat))
+
         for day in range(0, self.days):
-            # get day names
-            timestamp = int(forecastData[day]["min_date"]) / 1000 + self.utcOffset * 3600
-            dayNames.append(datetime.datetime.fromtimestamp(timestamp, datetime.UTC).strftime(dateFormat)) # name of the day
+            dayNames.append(datetime.datetime.fromtimestamp(timestamps[day * 24], datetime.UTC).strftime(dateFormat))
 
-            # get timestamps (the same for all data)
-            for hour in range(0, 24):
-                try: # Last day might not have 24h
-                    #print(day, hour)
-                    timestamp = forecastData[day]["rainfall"][hour][0]
-                    timestamp = int(int(timestamp) / 1000) + self.utcOffset * 3600
-                except:
-                    logging.warning("For day %d only data of %d hours are provided!" % (day, hour))
-                    timestamp = timestamps[-1] + 3600 # Use timstamp of last hour and add 3600 seconds
-                timestamps.append(timestamp)
+        rainfall = [series['rainfall'].get(d) for d in selectedDates]
+        temperature = [series['temperature'].get(d) for d in selectedDates]
+        rainfallVarianceMin = [series['rainfallVarianceMin'].get(d) for d in selectedDates]
+        rainfallVarianceMax = [series['rainfallVarianceMax'].get(d) for d in selectedDates]
+        temperatureVarianceMin = [series['temperatureVarianceMin'].get(d) for d in selectedDates]
+        temperatureVarianceMax = [series['temperatureVarianceMax'].get(d) for d in selectedDates]
+        wind = [series['wind'].get(d) for d in selectedDates]
+        windGustPeak = [series['windGustPeak'].get(d) for d in selectedDates]
+        sunshine = [series['sunshine'].get(d) for d in selectedDates]
 
-        if self.days < maximumNumberOfDays: # We can also add the first hour of the next day
-            timestamp = forecastData[self.days]["rainfall"][0][0]
-            timestamp = int(int(timestamp) / 1000) + self.utcOffset * 3600
-            timestamps.append(timestamp)
-
-        dayIndex = 0
-        for timestamp in timestamps:
-            formatedTime.append(datetime.datetime.fromtimestamp(timestamp, datetime.UTC).strftime(timeFormat))
-        rainfall = self.dataExtractorNormal(forecastData, self.days, "rainfall", 1)
-        sunshine = self.dataExtractorNormal(forecastData, self.days, "sunshine", 1)
-        temperature = self.dataExtractorNormal(forecastData, self.days, "temperature", 1)
-        rainfallVarianceMin, rainfallVarianceMax = self.dataExtractorWithVariance(forecastData, self.days, "variance_rain", 1, 2)
-        temperatureVarianceMin, temperatureVarianceMax = self.dataExtractorWithVariance(forecastData, self.days, "variance_range", 1, 2)
-        wind = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind", "data", 1)
-        windGustPeak = self.dataExtractorWithDataInSubfield(forecastData, self.days, "wind_gust_peak", "data", 1)
-
-        #symbols = self.dataExtractorNormal(forecastData, self.days, "symbols", 1)
-        symbolsTimestamps, symbols = self.dataExtractorSymbols(forecastData, self.days, "symbols", "timestamp", "weather_symbol_id")
+        symbols = []
+        symbolsTimestamps = []
+        for day in range(0, self.days):
+            for h in [0, 3, 6, 9, 12, 15, 18, 21]:
+                idx = day * 24 + h
+                if idx >= self.days * 24:
+                    continue
+                date = selectedDates[idx]
+                value = symbolsSeries.get(date)
+                if value is not None:
+                    symbols.append(value)
+                    symbolsTimestamps.append(dayTimestamps[date])
 
         self.data["noOfDays"] = self.days
         self.data["dayNames"] = dayNames
@@ -255,9 +341,9 @@ class MeteoSwissForecast:
         self.data["temperature"] = temperature
         self.data["temperatureVarianceMin"] = temperatureVarianceMin
         self.data["temperatureVarianceMax"] = temperatureVarianceMax
-        self.data["sunshine"] = sunshine
         self.data["wind"] = wind
         self.data["windGustPeak"] = windGustPeak
+        self.data["sunshine"] = sunshine
         self.data["symbols"] = symbols
         self.data["symbolsTimestamps"] = symbolsTimestamps
 
@@ -279,9 +365,6 @@ class MeteoSwissForecast:
                 pass
 
         logging.debug("All data parsed")
-
-        # Export it for testing
-        #self.exportForecastData(forecastData, "forecast.json")
 
         return self.data
 
@@ -807,7 +890,7 @@ if __name__ == '__main__':
     parser.add_argument('-z', '--zip-code', action='store', type=int, required=True, help='Zip Code of the city to be represented')
     parser.add_argument('-f', '--file', type=argparse.FileType('w'), required=True, help='File name of the graph to be written (PNG)')
     parser.add_argument('-m', '--meta', type=argparse.FileType('w'), required=True, help='File name with meta data to be written (JSON)')
-    parser.add_argument('--days-to-show', action='store', type=int, default=4, choices=range(1, 8), help='Number of days to show. If not set, use all data')
+    parser.add_argument('--days-to-show', action='store', type=int, default=4, choices=range(1, maximumNumberOfDays+1), help='Number of days to show. If not set, use all data')
     parser.add_argument('--height', action='store', type=int, help='Height of the graph in pixel')
     parser.add_argument('--width', action='store', type=int, help='Width of the graph in pixel', default=1920)
     parser.add_argument('--utc-offset', action='store', type=int, help='Offset to UTC, only needed if system does not know it (eg in a docker container)', default=None)
