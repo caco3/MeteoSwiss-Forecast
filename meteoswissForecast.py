@@ -727,7 +727,9 @@ class MeteoSwissForecast:
 
 
         # Show when the model was last calculated
-        timestampLocal = data["modelCalculationTimestamp"] + self.utcOffset * 3600
+        # The model run time is an end-of-hour timestamp, so shift it back by one hour
+        # to align with the start-of-hour display convention used for the forecast data.
+        timestampLocal = data["modelCalculationTimestamp"] + self.utcOffset * 3600 - 3600
         #l = mlines.Line2D([timestampLocal, timestampLocal], [rainYRange[0], rainScaleMax])
         #rainAxis.add_line(l)
         #rainAxis.plot([timestampLocal], [(rainScaleMax-rainYRange[0])/40], '^', color='blue', linewidth=2)
